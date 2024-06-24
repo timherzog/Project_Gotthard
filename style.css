@@ -1,0 +1,35 @@
+body {
+    margin: 0;
+    overflow: hidden; /* Verhindert das Scrollen */
+}
+canvas {
+    display: block; /* Entfernt den Standardabstand für das Canvas-Element */
+}
+
+/* Media Queries für verschiedene Geräte */
+@media (max-width: 600px) {
+    /* Smartphones */
+    .gui-container {
+        display: none; /* Verstecke GUI auf kleinen Bildschirmen */
+    }
+    canvas {
+        width: 100vw;
+        height: 100vh;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+    /* Tablets */
+    canvas {
+        width: 100vw;
+        height: 100vh;
+    }
+}
+
+@media (min-width: 1025px) {
+    /* Desktops */
+    canvas {
+        width: 100vw;
+        height: 100vh;
+    }
+}
