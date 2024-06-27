@@ -13,28 +13,87 @@ scene.background = new THREE.Color(0x87CEEB); // Himmelsblau
 const ambientLight = new THREE.AmbientLight(0x404040); // weiches Umgebungslicht
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(1, 1, 1).normalize();
+const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+directionalLight.position.set(1, 1.2, 0.8).normalize();
 scene.add(directionalLight);
 
 // Kamera-Position setzen
 camera.position.set(3, 2, 5); // x, y, z Position
 camera.lookAt(0, 0, 0); // Blickpunkt (Zentrum der Szene)
 
+
+
 // GLTF-Modell laden
 const gltfLoader = new THREE.GLTFLoader();
-gltfLoader.load('glb/Gotthard_2.glb', (gltf) => {
+let mixer;
+const clock = new THREE.Clock();
+
+gltfLoader.load('glb/Gotthard_3.2.glb', (gltf) => {
     const model = gltf.scene;
     scene.add(model);
 
-    const mixer = new THREE.AnimationMixer(model);
+// Den Path unsichtbar machen
+const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts"];
+pathObjects.forEach(pathName => {
+    const pathObject = model.getObjectByName(pathName);
+    if (pathObject) {
+        pathObject.visible = false;
+    } else {
+        console.warn(`Pfad nicht gefunden: ${pathName}`);
+    }
+});
+
+    mixer = new THREE.AnimationMixer(model);
+
+    // Hier werden alle Animationen des Modells gestartet
     gltf.animations.forEach((clip) => {
         const action = mixer.clipAction(clip);
         action.setLoop(THREE.LoopRepeat); // Endlos wiederholen
         action.play();
     });
 
-    const clock = new THREE.Clock();
+    const vehicles = [
+        { name: "Auto_1_blau", pathName: "Pfad_Autobahn_NtS_links", speed: 0.001 },
+        { name: "Auto_1_gelb", pathName: "Pfad_Autobahn_NtS_rechts", speed: 0.0015 }
+    ];
+
+    vehicles.forEach(vehicle => {
+        const vehicleObject = model.getObjectByName(vehicle.name);
+        const pathObject = model.getObjectByName(vehicle.pathName);
+
+        if (vehicleObject && pathObject) {
+            animateVehicle(vehicleObject, pathObject, vehicle.speed);
+        } else {
+            console.warn(`Fahrzeug oder Pfad nicht gefunden: ${vehicle.name}, ${vehicle.pathName}`);
+        }
+    });
+
+    // Neue Keyframe-Animation für auto.001
+    const vehicleObject = model.getObjectByName("auto.001");
+    if (vehicleObject) {
+        // Neue Keyframe-Positionen definieren
+        const times = [0, 1, 2, 3]; // Zeitpunkte in Sekunden
+        const positions = [
+            0, 0, 0, // Position zum Zeitpunkt 0
+            5, 0, 0, // Position zum Zeitpunkt 1
+            0, 5, 0, // Position zum Zeitpunkt 2
+            0, 0, 5  // Position zum Zeitpunkt 3
+        ];
+
+        // Keyframe-Tracks erstellen
+        const positionKF = new THREE.VectorKeyframeTrack(`${vehicleObject.name}.position`, times, positions);
+
+        // Neue AnimationClip erstellen
+        const newClip = new THREE.AnimationClip('move', -1, [positionKF]); // -1 für automatische Länge
+
+        // Originalanimationen stoppen und neue Animation abspielen
+        mixer.stopAllAction();
+        const action = mixer.clipAction(newClip, vehicleObject);
+        action.setLoop(THREE.LoopRepeat); // Endlos wiederholen
+        action.play();
+    } else {
+        console.warn('Fahrzeug "auto.001" nicht gefunden.');
+    }
 
     function animate() {
         requestAnimationFrame(animate);
@@ -47,6 +106,42 @@ gltfLoader.load('glb/Gotthard_2.glb', (gltf) => {
 }, undefined, (error) => {
     console.error(error);
 });
+
+function animateVehicle(vehicle, path, speed) {
+    // Überprüfen ob das Pfadobjekt tatsächlich eine Geometrie hat
+    if (!path.geometry || !path.geometry.attributes.position) {
+        console.error(`Pfad ${path.name} hat keine Geometrie.`);
+        return;
+    }
+
+    const points = path.geometry.attributes.position.array;
+    const curvePoints = [];
+    for (let i = 0; i < points.length; i += 3) {
+        curvePoints.push(new THREE.Vector3(points[i], points[i + 1], points[i + 2]));
+    }
+    const curve = new THREE.CatmullRomCurve3(curvePoints);
+    const pathLength = curve.getLength();
+    let progress = 0;
+
+    function moveVehicle() {
+        requestAnimationFrame(moveVehicle);
+
+        progress += speed;
+        if (progress > 1) progress -= 1; // Reset progress to loop the animation
+
+        const position = curve.getPointAt(progress);
+        const tangent = curve.getTangentAt(progress).normalize();
+
+        vehicle.position.copy(position);
+
+        const axis = new THREE.Vector3(0, 1, 0);
+        const up = new THREE.Vector3(0, 0, 1);
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
+        vehicle.quaternion.copy(quaternion);
+    }
+
+    moveVehicle();
+}
 
 // dat.GUI zur Steuerung hinzufügen
 const gui = new dat.GUI();
@@ -86,6 +181,7 @@ directionalLightFolder.add(directionalLight.position, 'z', -10, 10).name('Positi
 directionalLightFolder.open();
 
 lightFolder.open();
+
 
 // Funktion zum Abrufen der Temperaturdaten von Open-Meteo
 async function fetchTemperature() {
@@ -128,6 +224,8 @@ async function createTemperatureText() {
         scene.add(textMesh);
     });
 }
+
+
 
 // Temperaturtext erstellen
 createTemperatureText();
