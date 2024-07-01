@@ -1,4 +1,4 @@
-// Szene, Kamera und Renderer erstellen
+// Szene, Kamera und Renderer erstellen 🏞️ 🎥 👾
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -6,10 +6,10 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio); // Pixelverhältnis anpassen
 document.body.appendChild(renderer.domElement);
 
-// Hintergrundfarbe setzen
+// Hintergrundfarbe setzen 🟦
 scene.background = new THREE.Color(0x87CEEB); // Himmelsblau
 
-// Licht hinzufügen
+// Licht hinzufügen 💡
 const ambientLight = new THREE.AmbientLight(0x404040); // weiches Umgebungslicht
 scene.add(ambientLight);
 
@@ -17,23 +17,21 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
 directionalLight.position.set(1, 1.2, 0.8).normalize();
 scene.add(directionalLight);
 
-// Kamera-Position setzen
+// Kamera-Position setzen 🎥
 camera.position.set(3, 2, 5); // x, y, z Position
 camera.lookAt(0, 0, 0); // Blickpunkt (Zentrum der Szene)
 
-
-
-// GLTF-Modell laden
+// GLTF-Modell laden 🖼️
 const gltfLoader = new THREE.GLTFLoader();
 let mixer;
 const clock = new THREE.Clock();
 
-gltfLoader.load('glb/Gotthard_3.2.glb', (gltf) => {
+gltfLoader.load('glb/Gotthard_3.4.glb', (gltf) => {
     const model = gltf.scene;
     scene.add(model);
 
-// Den Path unsichtbar machen
-const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts"];
+// Die Paths unsichtbar machen ⛔
+const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts"];
 pathObjects.forEach(pathName => {
     const pathObject = model.getObjectByName(pathName);
     if (pathObject) {
@@ -42,19 +40,22 @@ pathObjects.forEach(pathName => {
         console.warn(`Pfad nicht gefunden: ${pathName}`);
     }
 });
-
+//
     mixer = new THREE.AnimationMixer(model);
 
-    // Hier werden alle Animationen des Modells gestartet
+    // Hier werden alle Animationen des Modells gestartet 💨
     gltf.animations.forEach((clip) => {
         const action = mixer.clipAction(clip);
         action.setLoop(THREE.LoopRepeat); // Endlos wiederholen
         action.play();
     });
 
+    // Fahrzeuge mit Pfaden und Geschwindigkeiten verbinden 🚗
     const vehicles = [
-        { name: "Auto_1_blau", pathName: "Pfad_Autobahn_NtS_links", speed: 0.001 },
-        { name: "Auto_1_gelb", pathName: "Pfad_Autobahn_NtS_rechts", speed: 0.0015 }
+        { name: "Auto_1_blau", pathName: "Pfad_Autobahn_NtS_links", speed: 0.001, reverse: false },
+        { name: "Auto_1_gelb", pathName: "Pfad_Autobahn_NtS_rechts", speed: 0.0015, reverse: false },
+        { name: "Auto_1_orange", pathName: "Pfad_Autobahn_StN_links", speed: 0.002, reverse: true },
+        { name: "Auto_1_rot", pathName: "Pfad_Autobahn_StN_rechts", speed: 0.0025, reverse: true }
     ];
 
     vehicles.forEach(vehicle => {
@@ -62,39 +63,25 @@ pathObjects.forEach(pathName => {
         const pathObject = model.getObjectByName(vehicle.pathName);
 
         if (vehicleObject && pathObject) {
-            animateVehicle(vehicleObject, pathObject, vehicle.speed);
+            animateVehicle(vehicleObject, pathObject, vehicle.speed, vehicle.reverse);
         } else {
             console.warn(`Fahrzeug oder Pfad nicht gefunden: ${vehicle.name}, ${vehicle.pathName}`);
         }
     });
 
-    // Neue Keyframe-Animation für auto.001
-    const vehicleObject = model.getObjectByName("auto.001");
-    if (vehicleObject) {
-        // Neue Keyframe-Positionen definieren
-        const times = [0, 1, 2, 3]; // Zeitpunkte in Sekunden
-        const positions = [
-            0, 0, 0, // Position zum Zeitpunkt 0
-            5, 0, 0, // Position zum Zeitpunkt 1
-            0, 5, 0, // Position zum Zeitpunkt 2
-            0, 0, 5  // Position zum Zeitpunkt 3
-        ];
-
-        // Keyframe-Tracks erstellen
-        const positionKF = new THREE.VectorKeyframeTrack(`${vehicleObject.name}.position`, times, positions);
-
-        // Neue AnimationClip erstellen
-        const newClip = new THREE.AnimationClip('move', -1, [positionKF]); // -1 für automatische Länge
-
-        // Originalanimationen stoppen und neue Animation abspielen
-        mixer.stopAllAction();
-        const action = mixer.clipAction(newClip, vehicleObject);
-        action.setLoop(THREE.LoopRepeat); // Endlos wiederholen
-        action.play();
-    } else {
-        console.warn('Fahrzeug "auto.001" nicht gefunden.');
+    // Auto_1_gelb duplizieren und auf dem Pfad Pfad_Autobahn_StN_rechts fahren lassen
+    const yellowCar = model.getObjectByName("Auto_1_gelb").clone();
+    if (yellowCar) {
+        yellowCar.name = "Auto_1_gelb_clone";
+        model.add(yellowCar);
+        const pathObject = model.getObjectByName("Pfad_Autobahn_StN_rechts");
+        if (pathObject) {
+            animateVehicle(yellowCar, pathObject, 0.002, true, 0.5); // Mit initialem Fortschritt von 0.5
+        } else {
+            console.warn("Pfad nicht gefunden: Pfad_Autobahn_StN_rechts");
+        }
     }
-
+    
     function animate() {
         requestAnimationFrame(animate);
         const delta = clock.getDelta();
@@ -107,7 +94,7 @@ pathObjects.forEach(pathName => {
     console.error(error);
 });
 
-function animateVehicle(vehicle, path, speed) {
+function animateVehicle(vehicle, path, speed, reverse, initialProgress = 0) {
     // Überprüfen ob das Pfadobjekt tatsächlich eine Geometrie hat
     if (!path.geometry || !path.geometry.attributes.position) {
         console.error(`Pfad ${path.name} hat keine Geometrie.`);
@@ -120,14 +107,16 @@ function animateVehicle(vehicle, path, speed) {
         curvePoints.push(new THREE.Vector3(points[i], points[i + 1], points[i + 2]));
     }
     const curve = new THREE.CatmullRomCurve3(curvePoints);
-    const pathLength = curve.getLength();
-    let progress = 0;
+    //const pathLength = curve.getLength();
+    let progress = reverse ? 1 :0;
 
     function moveVehicle() {
         requestAnimationFrame(moveVehicle);
 
-        progress += speed;
+
+        progress += reverse ? -speed : speed;
         if (progress > 1) progress -= 1; // Reset progress to loop the animation
+        if (progress < 0) progress += 1; // Reset progress to loop the animation in reverse
 
         const position = curve.getPointAt(progress);
         const tangent = curve.getTangentAt(progress).normalize();
@@ -138,16 +127,21 @@ function animateVehicle(vehicle, path, speed) {
         const up = new THREE.Vector3(0, 0, 1);
         const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
         vehicle.quaternion.copy(quaternion);
+
+        // Fahrzeug um 180 Grad um die Y-Achse drehen, wenn es in die entgegengesetzte Richtung fährt
+        if (reverse) {
+            vehicle.rotateY(Math.PI);
+        }
     }
 
     moveVehicle();
 }
 
-// dat.GUI zur Steuerung hinzufügen
+// dat.GUI zur Steuerung hinzufügen 🎮
 const gui = new dat.GUI();
 gui.domElement.classList.add('gui-container');
 
-// Kamera-Steuerung
+// Kamera-Steuerung 🎮-🎥
 const cameraFolder = gui.addFolder('Camera Position');
 cameraFolder.add(camera.position, 'x', -10, 10).name('Position X').onChange(() => updateCamera());
 cameraFolder.add(camera.position, 'y', -10, 10).name('Position Y').onChange(() => updateCamera());
@@ -158,7 +152,7 @@ function updateCamera() {
     camera.lookAt(0, 0, 0); // Blickpunkt (Zentrum der Szene) nach der Positionsänderung beibehalten
 }
 
-// Licht-Steuerung
+// Licht-Steuerung 🎮-💡
 const lightFolder = gui.addFolder('Light Settings');
 
 // Ambient Light
@@ -183,9 +177,10 @@ directionalLightFolder.open();
 lightFolder.open();
 
 
-// Funktion zum Abrufen der Temperaturdaten von Open-Meteo
+// Funktion zum Abrufen der Temperaturdaten von Open-Meteo 🌡️
 async function fetchTemperature() {
     const apiUrl = 'https://api.open-meteo.com/v1/forecast?latitude=46.6667&longitude=8.5667&current_weather=true';
+    
     try {
         const response = await fetch(apiUrl);
         const data = await response.json();
