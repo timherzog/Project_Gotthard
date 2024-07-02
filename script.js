@@ -119,6 +119,31 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+
+let nordStauLevel = ''; // Variable für den aktuellen Verkehrszustand
+
+// Funktionen zur Anpassung der Szene entsprechend der Verkehrsdichte
+function adjustSceneClearTraffic() {
+    nordStauLevel = 'Kein Stau'; // Aktualisierung von nordStauLevel
+    '🚗';
+    //hier Szene normal laufen lassen ohne Ampel usw. Das alles ausserhalb dieser Funktion und mit denen unten dran manipulieren. nordStauLevel kann verwendet werden, um Text auf der Website anzeigen zu lassen. Wenn ich etwas an der Szene ändern will aufgrund des Verkehrszustandes kommt das unten rein.
+}
+
+function adjustSceneLightTraffic() {
+    nordStauLevel = 'Wenig Stau'; // Aktualisierung von nordStauLevel
+    '🚗 🚗';
+}
+
+function adjustSceneModerateTraffic() {
+    nordStauLevel = 'Mittel Stau'; // Aktualisierung von nordStauLevel
+    '🚗 🚗 🚗';
+}
+
+function adjustSceneHeavyTraffic() {
+    nordStauLevel = 'Viel Stau'; // Aktualisierung von nordStauLevel
+    '🚗 🚗 🚗 🚗';
+}
+
 $(document).ready(function() {
     function loadVerkehrsmeldungen() {
         $.ajax({
@@ -142,33 +167,19 @@ $(document).ready(function() {
                 $('#nord_km').html('Stau Nord: ' + (data.nord_km !== null ? data.nord_km + ' km' : 'Keine Daten'));
                 $('#sued_km').html('Stau Süd: ' + (data.sued_km !== null ? data.sued_km + ' km' : 'Keine Daten'));
 
-                // Logik für dynamisches Modell basierend auf km Werten
-                let nordSymbol = '';
+                // Update der Verkehrsszene entsprechend der Verkehrsdichte
                 if (data.nord_km === 0) {
-                    nordSymbol = '🚗';
+                    adjustSceneClearTraffic();
                 } else if (data.nord_km > 0 && data.nord_km <= 5) {
-                    nordSymbol = '🚗 🚙';
+                    adjustSceneLightTraffic();
                 } else if (data.nord_km > 5 && data.nord_km <= 10) {
-                    nordSymbol = '🚗 🚙 🛻';
+                    adjustSceneModerateTraffic();
                 } else {
-                    nordSymbol = '🚗 🚙 🛻 🚐';
+                    adjustSceneHeavyTraffic();
                 }
-                $('#nord_symbol').html(nordSymbol);
 
-                let suedSymbol = '';
-                if (data.sued_km === 0) {
-                    suedSymbol = '🚗';
-                } else if (data.sued_km > 0 && data.sued_km <= 5) {
-                    suedSymbol = '🚗 🚙';
-                } else if (data.sued_km > 5 && data.sued_km <= 10) {
-                    suedSymbol = '🚗 🚙 🛻';
-                } else {
-                    suedSymbol = '🚗 🚙 🛻 🚐';
-                }
-                $('#sued_symbol').html(suedSymbol);
-
-                // Anzeige des Gotthard-Pass-Status
-                $('#gotthard_pass_status').html(data.gotthard_pass_status);
+                // Konsolenausgabe des aktuellen Verkehrszustands
+                console.log('Aktueller Verkehrszustand (Nord):', nordStauLevel);
             },
 
             error: function(jqXHR, textStatus, errorThrown) {
