@@ -6,86 +6,63 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio); // Pixelverhältnis anpassen
 document.body.appendChild(renderer.domElement);
 
+// OrbitControls hinzufügen 🌀
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; // Trägheitseffekt (für sanftere Kamerabewegung)
+controls.dampingFactor = 0.25;
+controls.screenSpacePanning = false;
+controls.minDistance = 1; // Minimum zoom distance
+controls.maxDistance = 500; // Maximum zoom distance
+
 // Hintergrundfarbe setzen 🟦
 scene.background = new THREE.Color(0x87CEEB); // Himmelsblau
 
 // Licht hinzufügen 💡
 const ambientLight = new THREE.AmbientLight(0x404040); // weiches Umgebungslicht
+ambientLight.intensity = 0.5;
 scene.add(ambientLight);
 
+// Funktion zur Berechnung des Sonnenstandes 🌞
+function calculateSunPosition(date, latitude, longitude) {
+    const sunCalc = SunCalc.getPosition(date, latitude, longitude);
+    const azimuth = sunCalc.azimuth * (180 / Math.PI); // Azimutwinkel in Grad
+    const altitude = sunCalc.altitude * (180 / Math.PI); // Höhenwinkel in Grad
+    return { azimuth, altitude };
+}
+
+// Licht hinzufügen, das die Sonne imitiert 💡🌞
+const sunPosition = calculateSunPosition(new Date('2024-06-30T11:00:00'), 47.3769, 8.5417); // Zürich Koordinaten
+const sunDirection = new THREE.Vector3();
+sunDirection.setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - sunPosition.altitude), THREE.MathUtils.degToRad(sunPosition.azimuth));
 const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-directionalLight.position.set(1, 1.2, 0.8).normalize();
+directionalLight.position.copy(sunDirection);
 scene.add(directionalLight);
 
 // Kamera-Position setzen 🎥
-camera.position.set(3, 2, 5); // x, y, z Position
+camera.position.set(5.3, 2.2, 7.1); // x, y, z Position
 camera.lookAt(0, 0, 0); // Blickpunkt (Zentrum der Szene)
 
 // GLTF-Modell laden 🖼️
 const gltfLoader = new THREE.GLTFLoader();
-let mixer;
-const clock = new THREE.Clock();
 
-gltfLoader.load('glb/Gotthard_3.4.glb', (gltf) => {
+gltfLoader.load('glb/Gotthard_3.6.glb', (gltf) => {
     const model = gltf.scene;
     scene.add(model);
 
-// Die Paths unsichtbar machen ⛔
-const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts"];
-pathObjects.forEach(pathName => {
-    const pathObject = model.getObjectByName(pathName);
-    if (pathObject) {
-        pathObject.visible = false;
-    } else {
-        console.warn(`Pfad nicht gefunden: ${pathName}`);
-    }
-});
-//
-    mixer = new THREE.AnimationMixer(model);
+    // Die Paths unsichtbar machen ⛔
+    // const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts"];
+    // pathObjects.forEach(pathName => {
+    //     const pathObject = model.getObjectByName(pathName);
+    //     if (pathObject) {
+    //         pathObject.visible = false;
+    //     } else {
+    //         console.warn(`Pfad nicht gefunden: ${pathName}`);
+    //     }
+    // });
 
-    // Hier werden alle Animationen des Modells gestartet 💨
-    gltf.animations.forEach((clip) => {
-        const action = mixer.clipAction(clip);
-        action.setLoop(THREE.LoopRepeat); // Endlos wiederholen
-        action.play();
-    });
-
-    // Fahrzeuge mit Pfaden und Geschwindigkeiten verbinden 🚗
-    const vehicles = [
-        { name: "Auto_1_blau", pathName: "Pfad_Autobahn_NtS_links", speed: 0.001, reverse: false },
-        { name: "Auto_1_gelb", pathName: "Pfad_Autobahn_NtS_rechts", speed: 0.0015, reverse: false },
-        { name: "Auto_1_orange", pathName: "Pfad_Autobahn_StN_links", speed: 0.002, reverse: true },
-        { name: "Auto_1_rot", pathName: "Pfad_Autobahn_StN_rechts", speed: 0.0025, reverse: true }
-    ];
-
-    vehicles.forEach(vehicle => {
-        const vehicleObject = model.getObjectByName(vehicle.name);
-        const pathObject = model.getObjectByName(vehicle.pathName);
-
-        if (vehicleObject && pathObject) {
-            animateVehicle(vehicleObject, pathObject, vehicle.speed, vehicle.reverse);
-        } else {
-            console.warn(`Fahrzeug oder Pfad nicht gefunden: ${vehicle.name}, ${vehicle.pathName}`);
-        }
-    });
-
-    // Auto_1_gelb duplizieren und auf dem Pfad Pfad_Autobahn_StN_rechts fahren lassen
-    const yellowCar = model.getObjectByName("Auto_1_gelb").clone();
-    if (yellowCar) {
-        yellowCar.name = "Auto_1_gelb_clone";
-        model.add(yellowCar);
-        const pathObject = model.getObjectByName("Pfad_Autobahn_StN_rechts");
-        if (pathObject) {
-            animateVehicle(yellowCar, pathObject, 0.002, true, 0.5); // Mit initialem Fortschritt von 0.5
-        } else {
-            console.warn("Pfad nicht gefunden: Pfad_Autobahn_StN_rechts");
-        }
-    }
-    
     function animate() {
         requestAnimationFrame(animate);
-        const delta = clock.getDelta();
-        mixer.update(delta);
+        controls.update(); // OrbitControls updaten
         renderer.render(scene, camera);
     }
 
@@ -93,49 +70,6 @@ pathObjects.forEach(pathName => {
 }, undefined, (error) => {
     console.error(error);
 });
-
-function animateVehicle(vehicle, path, speed, reverse, initialProgress = 0) {
-    // Überprüfen ob das Pfadobjekt tatsächlich eine Geometrie hat
-    if (!path.geometry || !path.geometry.attributes.position) {
-        console.error(`Pfad ${path.name} hat keine Geometrie.`);
-        return;
-    }
-
-    const points = path.geometry.attributes.position.array;
-    const curvePoints = [];
-    for (let i = 0; i < points.length; i += 3) {
-        curvePoints.push(new THREE.Vector3(points[i], points[i + 1], points[i + 2]));
-    }
-    const curve = new THREE.CatmullRomCurve3(curvePoints);
-    //const pathLength = curve.getLength();
-    let progress = reverse ? 1 :0;
-
-    function moveVehicle() {
-        requestAnimationFrame(moveVehicle);
-
-
-        progress += reverse ? -speed : speed;
-        if (progress > 1) progress -= 1; // Reset progress to loop the animation
-        if (progress < 0) progress += 1; // Reset progress to loop the animation in reverse
-
-        const position = curve.getPointAt(progress);
-        const tangent = curve.getTangentAt(progress).normalize();
-
-        vehicle.position.copy(position);
-
-        const axis = new THREE.Vector3(0, 1, 0);
-        const up = new THREE.Vector3(0, 0, 1);
-        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
-        vehicle.quaternion.copy(quaternion);
-
-        // Fahrzeug um 180 Grad um die Y-Achse drehen, wenn es in die entgegengesetzte Richtung fährt
-        if (reverse) {
-            vehicle.rotateY(Math.PI);
-        }
-    }
-
-    moveVehicle();
-}
 
 // dat.GUI zur Steuerung hinzufügen 🎮
 const gui = new dat.GUI();
@@ -176,88 +110,6 @@ directionalLightFolder.open();
 
 lightFolder.open();
 
-
-// Funktion zum Abrufen der Temperaturdaten von Open-Meteo 🌡️
-async function fetchTemperature() {
-    const apiUrl = 'https://api.open-meteo.com/v1/forecast?latitude=46.6667&longitude=8.5667&current_weather=true';
-    
-    try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        return data.current_weather.temperature;
-    } catch (error) {
-        console.error('Fehler beim Abrufen der Wetterdaten:', error);
-    }
-}
-
-// 3D-Textobjekt erstellen und Temperatur anzeigen
-let textMesh;
-const loader = new THREE.FontLoader();
-
-async function createTemperatureText() {
-    const temperature = await fetchTemperature();
-    if (temperature === undefined) {
-        console.error('Temperaturdaten konnten nicht abgerufen werden.');
-        return;
-    }
-    const tempText = `Temperature: ${temperature}°C`;
-
-    loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font) => {
-        const textGeometry = new THREE.TextGeometry(tempText, {
-            font: font,
-            size: 0.5, // Kleinere Schriftgröße
-            height: 0.1,
-        });
-        const textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        textMesh = new THREE.Mesh(textGeometry, textMaterial);
-        
-        // Text mittig in der Szene platzieren
-        textGeometry.computeBoundingBox();
-        const centerOffset = -0.5 * (textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x);
-        textMesh.position.set(centerOffset, 2, 0); // Etwas höher platzieren
-        
-        scene.add(textMesh);
-    });
-}
-
-
-
-// Temperaturtext erstellen
-createTemperatureText();
-
-// Temperaturtext regelmäßig aktualisieren
-setInterval(async () => {
-    if (textMesh) {
-        const temperature = await fetchTemperature();
-        if (temperature === undefined) {
-            console.error('Temperaturdaten konnten nicht abgerufen werden.');
-            return;
-        }
-        const tempText = `Temperature: ${temperature}°C`;
-
-        // Entferne das alte Text-Objekt
-        scene.remove(textMesh);
-        
-        // Erstelle ein neues Text-Objekt mit der aktualisierten Temperatur
-        loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font) => {
-            const textGeometry = new THREE.TextGeometry(tempText, {
-                font: font,
-                size: 0.5, // Kleinere Schriftgröße
-                height: 0.1,
-            });
-            const textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            textMesh = new THREE.Mesh(textGeometry, textMaterial);
-            
-            // Text mittig in der Szene platzieren
-            textGeometry.computeBoundingBox();
-            const centerOffset = -0.5 * (textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x);
-            textMesh.position.set(centerOffset, 2, 0); // Etwas höher platzieren
-            
-            scene.add(textMesh);
-        });
-    }
-}, 300000); // Aktualisiere alle 5 Minuten (300000 Millisekunden)
-
 // Fenstergrößeänderungen handhaben
 window.addEventListener('resize', onWindowResize, false);
 
@@ -266,3 +118,65 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
+
+$(document).ready(function() {
+    function loadVerkehrsmeldungen() {
+        $.ajax({
+            url: 'scrape.php', // Pfad zur PHP-Datei
+            type: 'GET',
+            success: function(data) {
+                const now = new Date();
+                const formattedDate = now.toLocaleDateString('de-DE');
+                const formattedTime = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                $('#gotthard-nord').html('A2 Gotthard Nord: ' + data.text_nord_1);
+                $('#gotthard-nord-update').html('Zuletzt aktualisiert am: ' + formattedDate + ' ' + formattedTime);
+                $('#gotthard-sued').html('A2 Gotthard Süd: ' + data.text_sued_1);
+                $('#gotthard-sued-update').html('Zuletzt aktualisiert am: ' + formattedDate + ' ' + formattedTime);
+                $('#gotthard-status').html('Status: ' + data.gotthard_status);
+                $('#gotthard-last-update').html('' + data.gotthard_last_update);
+                //$('#gotthard-status-only').html('Status: ' + data.gotthard_status_only);
+                //$('#gotthard-temperature').html('Temperatur: ' + data.gotthard_temperature);
+
+                // Kilometeranzahl in die neuen div-Elemente einfügen
+                $('#nord_km').html('Stau Nord: ' + (data.nord_km !== null ? data.nord_km + ' km' : 'Keine Daten'));
+                $('#sued_km').html('Stau Süd: ' + (data.sued_km !== null ? data.sued_km + ' km' : 'Keine Daten'));
+
+                // Logik für dynamisches Modell basierend auf km Werten
+                let nordSymbol = '';
+                if (data.nord_km === 0) {
+                    nordSymbol = '🚗';
+                } else if (data.nord_km > 0 && data.nord_km <= 5) {
+                    nordSymbol = '🚗 🚙';
+                } else if (data.nord_km > 5 && data.nord_km <= 10) {
+                    nordSymbol = '🚗 🚙 🛻';
+                } else {
+                    nordSymbol = '🚗 🚙 🛻 🚐';
+                }
+                $('#nord_symbol').html(nordSymbol);
+
+                let suedSymbol = '';
+                if (data.sued_km === 0) {
+                    suedSymbol = '🚗';
+                } else if (data.sued_km > 0 && data.sued_km <= 5) {
+                    suedSymbol = '🚗 🚙';
+                } else if (data.sued_km > 5 && data.sued_km <= 10) {
+                    suedSymbol = '🚗 🚙 🛻';
+                } else {
+                    suedSymbol = '🚗 🚙 🛻 🚐';
+                }
+                $('#sued_symbol').html(suedSymbol);
+
+                // Anzeige des Gotthard-Pass-Status
+                $('#gotthard_pass_status').html(data.gotthard_pass_status);
+            },
+
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error("Error loading data: " + textStatus, errorThrown);
+            }
+        });
+    }
+
+    loadVerkehrsmeldungen();
+    setInterval(loadVerkehrsmeldungen, 300000); // alle 5 Minuten (300000 Millisekunden)
+});
