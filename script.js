@@ -9,24 +9,82 @@ document.body.appendChild(renderer.domElement);
 // OrbitControls hinzufügen 🌀
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; // Trägheitseffekt (für sanftere Kamerabewegung)
-controls.dampingFactor = 0.25;
+controls.dampingFactor = 0.1;
 controls.screenSpacePanning = false;
-controls.minDistance = 1; // Minimum zoom distance
-controls.maxDistance = 500; // Maximum zoom distance
+controls.minDistance = 5; // Minimum zoom distance
+controls.maxDistance = 13; // Maximum zoom distance
+// Vertikale Rotation einschränken
+controls.maxPolarAngle = Math.PI / 1.5; // Begrenzung auf 90 Grad nach oben
+controls.minPolarAngle = Math.PI / 3; // Begrenzung auf 45 Grad nach unten
 
-// Hintergrundfarbe setzen 🟦
-scene.background = new THREE.Color(0x87CEEB); // Himmelsblau
+// Gradienten-Hintergrund hinzufügen 🌅
+const vertexShader = `
+    varying vec2 vUv;
+    void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+`;
+
+const fragmentShader = `
+    uniform vec3 topColor;
+    uniform vec3 bottomColor;
+    varying vec2 vUv;
+    void main() {
+        gl_FragColor = vec4(mix(bottomColor, topColor, vUv.y), 1.0);
+    }
+`;
+
+const uniforms = {
+    topColor: { value: new THREE.Color(0x0484fc) }, // Himmelsblau
+    bottomColor: { value: new THREE.Color(0xb4f2fc) } // Weiß
+};
+
+const gradientMaterial = new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+    uniforms,
+    side: THREE.BackSide // Rückseite rendern
+});
+
+const skyBoxWidth = 500;
+const skyBoxHeight = 2000; // Höher gemacht
+const skyBoxDepth = 500;
+const skyBoxGeometry = new THREE.BoxGeometry(skyBoxWidth, skyBoxHeight, skyBoxDepth);
+const skyBox = new THREE.Mesh(skyBoxGeometry, gradientMaterial);
+scene.add(skyBox);
 
 // Licht hinzufügen 💡
-const ambientLight = new THREE.AmbientLight(0x404040); // weiches Umgebungslicht
+const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Mäßige Intensität
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-directionalLight.position.set(1, 1.2, 0.8).normalize();
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+directionalLight.position.set(1, 1, 1).normalize();
 scene.add(directionalLight);
 
+const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0xFFFFFF, 0.67); // Himmelblau und Weiß
+scene.add(hemisphereLight);
+
+// Zusätzliches Hemisphere Light für die Unterseite
+const bottomHemisphereLight = new THREE.HemisphereLight(0xFFFFFF, 0x404040, 0.5);
+bottomHemisphereLight.position.set(0, -1, 0);
+scene.add(bottomHemisphereLight);
+
+directionalLight.castShadow = true;
+directionalLight.shadow.mapSize.width = 1024; // Standardgröße
+directionalLight.shadow.mapSize.height = 1024; // Standardgröße
+directionalLight.shadow.bias = -0.005; // Bessere Schattenqualität
+
+// Schattenkamera-Einstellungen für weiche Schatten
+directionalLight.shadow.camera.near = 0.5;
+directionalLight.shadow.camera.far = 500;
+directionalLight.shadow.camera.left = -100;
+directionalLight.shadow.camera.right = 100;
+directionalLight.shadow.camera.top = 100;
+directionalLight.shadow.camera.bottom = -100;
+
 // Kamera-Position setzen 🎥
-camera.position.set(5.3, 2.2, 7.1); // x, y, z Position
+camera.position.set(6.4, 3.1, 9.5); // x, y, z Position
 camera.lookAt(0, 0, 0); // Blickpunkt (Zentrum der Szene)
 
 // GLTF-Modell laden 🖼️
@@ -36,6 +94,13 @@ let clock = new THREE.Clock();
 
 gltfLoader.load('glb/Gotthard_3.7.glb', (gltf) => {
     const model = gltf.scene;
+    // Traverse-Block hier, innerhalb des Callbacks
+    model.traverse((node) => {
+        if (node.isMesh) {
+            node.material.flatShading = true; // Flat Shading für einen Low-Poly-Effekt
+            //node.material.color = new THREE.Color(0xff0000); // Beispiel: Rot für kräftige Farben
+        }
+    });
     scene.add(model);
 
 // Die Paths unsichtbar machen 🧶->⛔
@@ -68,7 +133,7 @@ gltf.animations.forEach((clip) => {
 
 // Fahrzeuge mit Pfaden und Geschwindigkeiten verbinden
 const vehicles = [
-    { name: 'Lastwagen_blau', pathName: "Pfad_Autobahn_NtS_links", speed: 0.001, reverse: true },
+    { name: 'Auto_1_hellgruen', pathName: "Pfad_Autobahn_NtS_links", speed: 0.001, reverse: true },
     { name: "Auto_1_blau", pathName: "Pfad_Autobahn_NtS_rechts", speed: 0.001, reverse: true },
     { name: "Auto_1_orange", pathName: "Pfad_Autobahn_StN_links", speed: 0.0015, reverse: false },
     { name: "Auto_1_rot", pathName: "Pfad_Autobahn_StN_rechts", speed: 0.0015, reverse: false },
@@ -139,8 +204,6 @@ function moveVehicle() {
 moveVehicle();
 }
 
-
-
 // dat.GUI zur Steuerung hinzufügen 🎮
 const gui = new dat.GUI();
 gui.domElement.classList.add('gui-container');
@@ -158,6 +221,7 @@ function updateCamera() {
 
 // Licht-Steuerung 🎮-💡
 const lightFolder = gui.addFolder('Light Settings');
+
 
 // Ambient Light
 const ambientLightFolder = lightFolder.addFolder('Ambient Light');
@@ -178,7 +242,25 @@ directionalLightFolder.add(directionalLight.position, 'y', -10, 10).name('Positi
 directionalLightFolder.add(directionalLight.position, 'z', -10, 10).name('Position Z');
 directionalLightFolder.open();
 
+// Hemisphere Light
+const hemisphereLightFolder = lightFolder.addFolder('Hemisphere Light');
+hemisphereLightFolder.addColor({ color: hemisphereLight.color.getHex() }, 'color').name('Color').onChange((value) => {
+    hemisphereLight.color.setHex(value);
+});
+hemisphereLightFolder.add(hemisphereLight, 'intensity', 0, 2).name('Intensity');
+hemisphereLightFolder.open();
+
 lightFolder.open();
+
+// // Effect Composer für Postprocessing hinzufügen 🎞️
+// const composer = new THREE.EffectComposer(renderer);
+
+// const renderPass = new THREE.RenderPass(scene, camera);
+// composer.addPass(renderPass);
+
+// const filmPass = new THREE.FilmPass(0.35, 0.025, 648, false);
+// filmPass.renderToScreen = true;
+// composer.addPass(filmPass);
 
 // Fenstergrößeänderungen handhaben
 window.addEventListener('resize', onWindowResize, false);
@@ -261,4 +343,19 @@ $(document).ready(function() {
 
     loadVerkehrsmeldungen();
     setInterval(loadVerkehrsmeldungen, 300000); // alle 5 Minuten (300000 Millisekunden)
+
+    ;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+
+function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    mixer.update(delta);
+    composer.render();
+}
+
+
 });
