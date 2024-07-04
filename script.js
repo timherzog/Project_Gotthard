@@ -19,23 +19,10 @@ scene.background = new THREE.Color(0x87CEEB); // Himmelsblau
 
 // Licht hinzufügen 💡
 const ambientLight = new THREE.AmbientLight(0x404040); // weiches Umgebungslicht
-ambientLight.intensity = 0.5;
 scene.add(ambientLight);
 
-// Funktion zur Berechnung des Sonnenstandes 🌞
-function calculateSunPosition(date, latitude, longitude) {
-    const sunCalc = SunCalc.getPosition(date, latitude, longitude);
-    const azimuth = sunCalc.azimuth * (180 / Math.PI); // Azimutwinkel in Grad
-    const altitude = sunCalc.altitude * (180 / Math.PI); // Höhenwinkel in Grad
-    return { azimuth, altitude };
-}
-
-// Licht hinzufügen, das die Sonne imitiert 💡🌞
-const sunPosition = calculateSunPosition(new Date('2024-06-30T11:00:00'), 47.3769, 8.5417); // Zürich Koordinaten
-const sunDirection = new THREE.Vector3();
-sunDirection.setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - sunPosition.altitude), THREE.MathUtils.degToRad(sunPosition.azimuth));
 const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-directionalLight.position.copy(sunDirection);
+directionalLight.position.set(1, 1.2, 0.8).normalize();
 scene.add(directionalLight);
 
 // Kamera-Position setzen 🎥
@@ -44,32 +31,115 @@ camera.lookAt(0, 0, 0); // Blickpunkt (Zentrum der Szene)
 
 // GLTF-Modell laden 🖼️
 const gltfLoader = new THREE.GLTFLoader();
+let mixer;
+let clock = new THREE.Clock();
 
-gltfLoader.load('glb/Gotthard_3.6.glb', (gltf) => {
+gltfLoader.load('glb/Gotthard_3.7.glb', (gltf) => {
     const model = gltf.scene;
     scene.add(model);
 
-    // Die Paths unsichtbar machen ⛔
-    // const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts"];
-    // pathObjects.forEach(pathName => {
-    //     const pathObject = model.getObjectByName(pathName);
-    //     if (pathObject) {
-    //         pathObject.visible = false;
-    //     } else {
-    //         console.warn(`Pfad nicht gefunden: ${pathName}`);
-    //     }
-    // });
+// Die Paths unsichtbar machen 🧶->⛔
+// const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts"];
+// pathObjects.forEach(pathName => {
+//     const pathObject = model.getObjectByName(pathName);
+//     if (pathObject) {
+//         // Falls das Objekt ein Linien- oder NURBS-Objekt ist, ändern wir das Material
+//         if (pathObject.type === 'Line' || pathObject.type === 'LineSegments' || pathObject.type === 'LineLoop') {
+//             pathObject.material.visible = false;
+//             console.log(`Pfad gefunden und unsichtbar gemacht: ${pathName}`);
+//         } else if (pathObject.type === 'NURBS') {
+//             pathObject.visible = false;
+//             console.log(`NURBS-Pfad gefunden und unsichtbar gemacht: ${pathName}`);
+//         }
+//     } else {
+//         console.warn(`Pfad nicht gefunden: ${pathName}`);
+//     }
+// });
 
-    function animate() {
-        requestAnimationFrame(animate);
-        controls.update(); // OrbitControls updaten
-        renderer.render(scene, camera);
-    }
 
-    animate();
-}, undefined, (error) => {
-    console.error(error);
+mixer = new THREE.AnimationMixer(model);
+
+// Hier werden alle Animationen des Modells gestartet
+gltf.animations.forEach((clip) => {
+    const action = mixer.clipAction(clip);
+    action.setLoop(THREE.LoopRepeat); // Endlos wiederholen
+    action.play();
 });
+
+// Fahrzeuge mit Pfaden und Geschwindigkeiten verbinden
+const vehicles = [
+    { name: 'Lastwagen_blau', pathName: "Pfad_Autobahn_NtS_links", speed: 0.001, reverse: true },
+    { name: "Auto_1_blau", pathName: "Pfad_Autobahn_NtS_rechts", speed: 0.001, reverse: true },
+    { name: "Auto_1_orange", pathName: "Pfad_Autobahn_StN_links", speed: 0.0015, reverse: false },
+    { name: "Auto_1_rot", pathName: "Pfad_Autobahn_StN_rechts", speed: 0.0015, reverse: false },
+    { name: "Auto_1_gelb", pathName: "Pfad_Autobahn_Test", speed: 0.0015, reverse: false }
+];
+
+vehicles.forEach(vehicle => {
+    const vehicleObject = model.getObjectByName(vehicle.name);
+    const pathObject = model.getObjectByName(vehicle.pathName);
+
+    if (vehicleObject && pathObject) {
+        animateVehicle(vehicleObject, pathObject, vehicle.speed, vehicle.reverse);
+    } else {
+        console.warn(`Fahrzeug oder Pfad nicht gefunden: ${vehicle.name}, ${vehicle.pathName}`);
+    }
+});
+
+function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    mixer.update(delta);
+    renderer.render(scene, camera);
+}
+
+animate();
+}, undefined, (error) => {
+console.error(error);
+});
+
+function animateVehicle(vehicle, path, speed, reverse, initialProgress = 0) {
+// Überprüfen ob das Pfadobjekt tatsächlich eine Geometrie hat
+if (!path.geometry || !path.geometry.attributes.position) {
+    console.error(`Pfad ${path.name} hat keine Geometrie.`);
+    return;
+}
+
+const points = path.geometry.attributes.position.array;
+const curvePoints = [];
+for (let i = 0; i < points.length; i += 3) {
+    curvePoints.push(new THREE.Vector3(points[i], points[i + 1], points[i + 2]));
+}
+const curve = new THREE.CatmullRomCurve3(curvePoints);
+let progress = reverse ? 1 - initialProgress : initialProgress;
+
+function moveVehicle() {
+    requestAnimationFrame(moveVehicle);
+
+    progress += reverse ? -speed : speed;
+    if (progress > 1) progress -= 1; // Reset progress to loop the animation
+    if (progress < 0) progress += 1; // Reset progress to loop the animation in reverse
+
+    const position = curve.getPointAt(progress);
+    const tangent = curve.getTangentAt(progress).normalize();
+
+    vehicle.position.copy(position);
+
+    const axis = new THREE.Vector3(0, 1, 0);
+    const up = new THREE.Vector3(0, 0, 1);
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
+    vehicle.quaternion.copy(quaternion);
+
+    // Fahrzeug um 180 Grad um die Y-Achse drehen, wenn es in die entgegengesetzte Richtung fährt
+    if (reverse) {
+        vehicle.rotateY(Math.PI);
+    }
+}
+
+moveVehicle();
+}
+
+
 
 // dat.GUI zur Steuerung hinzufügen 🎮
 const gui = new dat.GUI();
@@ -116,7 +186,8 @@ window.addEventListener('resize', onWindowResize, false);
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth / 2, window.innerHeight / 2); // Halbiert die Auflösung damit die Animation flüssiger läuft
+
 }
 
 
