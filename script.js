@@ -1,7 +1,7 @@
 // Szene, Kamera und Renderer erstellen 🏞️ 🎥 👾
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // Transparentes Canvas
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio); // Pixelverhältnis anpassen
 document.body.appendChild(renderer.domElement);
@@ -11,48 +11,49 @@ const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; // Trägheitseffekt (für sanftere Kamerabewegung)
 controls.dampingFactor = 0.1;
 controls.screenSpacePanning = false;
+controls.enablePan = false; // Komplettiert das Panning
 controls.minDistance = 5; // Minimum zoom distance
 controls.maxDistance = 13; // Maximum zoom distance
 // Vertikale Rotation einschränken
 controls.maxPolarAngle = Math.PI / 1.5; // Begrenzung auf 90 Grad nach oben
 controls.minPolarAngle = Math.PI / 3; // Begrenzung auf 45 Grad nach unten
 
-// Gradienten-Hintergrund hinzufügen 🌅
-const vertexShader = `
-    varying vec2 vUv;
-    void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-`;
+// // Gradienten-Hintergrund hinzufügen 🌅
+// const vertexShader = `
+//     varying vec2 vUv;
+//     void main() {
+//         vUv = uv;
+//         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+//     }
+// `;
 
-const fragmentShader = `
-    uniform vec3 topColor;
-    uniform vec3 bottomColor;
-    varying vec2 vUv;
-    void main() {
-        gl_FragColor = vec4(mix(bottomColor, topColor, vUv.y), 1.0);
-    }
-`;
+// const fragmentShader = `
+//     uniform vec3 topColor;
+//     uniform vec3 bottomColor;
+//     varying vec2 vUv;
+//     void main() {
+//         gl_FragColor = vec4(mix(bottomColor, topColor, vUv.y), 1.0);
+//     }
+// `;
 
-const uniforms = {
-    topColor: { value: new THREE.Color(0x0484fc) }, // Himmelsblau
-    bottomColor: { value: new THREE.Color(0xb4f2fc) } // Weiß
-};
+// const uniforms = {
+//     topColor: { value: new THREE.Color(0x0484fc) }, // Himmelsblau
+//     bottomColor: { value: new THREE.Color(0xb4f2fc) } // Weiß
+// };
 
-const gradientMaterial = new THREE.ShaderMaterial({
-    vertexShader,
-    fragmentShader,
-    uniforms,
-    side: THREE.BackSide // Rückseite rendern
-});
+// const gradientMaterial = new THREE.ShaderMaterial({
+//     vertexShader,
+//     fragmentShader,
+//     uniforms,
+//     side: THREE.BackSide // Rückseite rendern
+// });
 
-const skyBoxWidth = 500;
-const skyBoxHeight = 2000; // Höher gemacht
-const skyBoxDepth = 500;
-const skyBoxGeometry = new THREE.BoxGeometry(skyBoxWidth, skyBoxHeight, skyBoxDepth);
-const skyBox = new THREE.Mesh(skyBoxGeometry, gradientMaterial);
-scene.add(skyBox);
+// const skyBoxWidth = 500;
+// const skyBoxHeight = 2000; // Höher gemacht
+// const skyBoxDepth = 500;
+// const skyBoxGeometry = new THREE.BoxGeometry(skyBoxWidth, skyBoxHeight, skyBoxDepth);
+// const skyBox = new THREE.Mesh(skyBoxGeometry, gradientMaterial);
+// scene.add(skyBox);
 
 // Licht hinzufügen 💡
 const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Mäßige Intensität
@@ -92,7 +93,7 @@ const gltfLoader = new THREE.GLTFLoader();
 let mixer;
 let clock = new THREE.Clock();
 
-gltfLoader.load('glb/Gotthard_3.7.glb', (gltf) => {
+gltfLoader.load('glb/Gotthard_4.2.glb', (gltf) => {
     const model = gltf.scene;
     // Traverse-Block hier, innerhalb des Callbacks
     model.traverse((node) => {
@@ -103,23 +104,23 @@ gltfLoader.load('glb/Gotthard_3.7.glb', (gltf) => {
     });
     scene.add(model);
 
-// Die Paths unsichtbar machen 🧶->⛔
-// const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts"];
-// pathObjects.forEach(pathName => {
-//     const pathObject = model.getObjectByName(pathName);
-//     if (pathObject) {
-//         // Falls das Objekt ein Linien- oder NURBS-Objekt ist, ändern wir das Material
-//         if (pathObject.type === 'Line' || pathObject.type === 'LineSegments' || pathObject.type === 'LineLoop') {
-//             pathObject.material.visible = false;
-//             console.log(`Pfad gefunden und unsichtbar gemacht: ${pathName}`);
-//         } else if (pathObject.type === 'NURBS') {
-//             pathObject.visible = false;
-//             console.log(`NURBS-Pfad gefunden und unsichtbar gemacht: ${pathName}`);
-//         }
-//     } else {
-//         console.warn(`Pfad nicht gefunden: ${pathName}`);
-//     }
-// });
+//Die Paths unsichtbar machen 🧶->⛔
+const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts"];
+pathObjects.forEach(pathName => {
+    const pathObject = model.getObjectByName(pathName);
+    if (pathObject) {
+        // Falls das Objekt ein Linien- oder NURBS-Objekt ist, ändern wir das Material
+        if (pathObject.type === 'Line' || pathObject.type === 'LineSegments' || pathObject.type === 'LineLoop') {
+            pathObject.material.visible = false;
+            console.log(`Pfad gefunden und unsichtbar gemacht: ${pathName}`);
+        } else if (pathObject.type === 'NURBS') {
+            pathObject.visible = false;
+            console.log(`NURBS-Pfad gefunden und unsichtbar gemacht: ${pathName}`);
+        }
+    } else {
+        console.warn(`Pfad nicht gefunden: ${pathName}`);
+    }
+});
 
 
 mixer = new THREE.AnimationMixer(model);
@@ -133,11 +134,13 @@ gltf.animations.forEach((clip) => {
 
 // Fahrzeuge mit Pfaden und Geschwindigkeiten verbinden
 const vehicles = [
-    { name: 'Auto_1_hellgruen', pathName: "Pfad_Autobahn_NtS_links", speed: 0.001, reverse: true },
-    { name: "Auto_1_blau", pathName: "Pfad_Autobahn_NtS_rechts", speed: 0.001, reverse: true },
-    { name: "Auto_1_orange", pathName: "Pfad_Autobahn_StN_links", speed: 0.0015, reverse: false },
-    { name: "Auto_1_rot", pathName: "Pfad_Autobahn_StN_rechts", speed: 0.0015, reverse: false },
-    { name: "Auto_1_gelb", pathName: "Pfad_Autobahn_Test", speed: 0.0015, reverse: false }
+    { name: 'Wohnmobil_grün', pathName: "Pfad_Autobahn_NtS_links", speed: 0.0010, reverse: true },
+    { name: "Lastwagen_orange", pathName: "Pfad_Autobahn_NtS_rechts", speed: 0.0012, reverse: true },
+    { name: "Auto_1_blau", pathName: "Pfad_Autobahn_StN_links", speed: 0.0012, reverse: false },
+    { name: "Lastwagen_rot", pathName: "Pfad_Autobahn_StN_rechts", speed: 0.0010, reverse: false },
+    { name: "Auto_1_grün", pathName: "Pfad_Passtrasse_NtS", speed: 0.0005, reverse: false },
+    { name: "Postauto", pathName: "Pfad_Passtrasse_StN", speed: 0.0005, reverse: true }
+
 ];
 
 vehicles.forEach(vehicle => {
@@ -190,10 +193,21 @@ function moveVehicle() {
 
     vehicle.position.copy(position);
 
-    const axis = new THREE.Vector3(0, 1, 0);
-    const up = new THREE.Vector3(0, 0, 1);
-    const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
-    vehicle.quaternion.copy(quaternion);
+    // verhindern, dass sich die Fahrzeuge auf der Passtrasse seitwärts drehen
+    if (path.name === "Pfad_Passtrasse_NtS" ||path.name === "Pfad_Passtrasse_StN") {
+        // Hier verhindern wir die Z-Rotation für den spezifischen Pfad
+        const axis = new THREE.Vector3(0, 1, 0);
+        const up = new THREE.Vector3(0, 0, 1);
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
+        const euler = new THREE.Euler().setFromQuaternion(quaternion, 'YXZ');
+        euler.z = 0; // Z-Rotation auf 0 setzen
+        vehicle.quaternion.setFromEuler(euler);
+    } else {
+        const axis = new THREE.Vector3(0, 1, 0);
+        const up = new THREE.Vector3(0, 0, 1);
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
+        vehicle.quaternion.copy(quaternion);
+    }
 
     // Fahrzeug um 180 Grad um die Y-Achse drehen, wenn es in die entgegengesetzte Richtung fährt
     if (reverse) {
@@ -354,7 +368,7 @@ function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
     mixer.update(delta);
-    composer.render();
+    //composer.render();
 }
 
 
