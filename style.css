@@ -9,29 +9,350 @@ body {
     background: linear-gradient(to bottom, #0484fc, #b4f2fc); /* Gradienten-Hintergrund */
 }
 
+html {
+    overflow: hidden; /* Verhindert das Scrollen */
+}
+
 canvas {
     display: block; /* Entfernt den Standardabstand für das Canvas-Element */
     width: 100%;
     height: 100%;
 }
 
-/* Media Queries für verschiedene Geräte */
-@media (max-width: 600px) {
-    /* Smartphones */
+/* Loading Animation */
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Navbar Bottom */
+.bottom-navbar {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    width: fit-content; /* or a specific width */
+    background-color: rgba(239, 238, 240, 0.6);
+    border-radius: 20px;
+    padding: 10px 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+  
+  .navbar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+  }
+  
+  .traffic-info, .pass-info, .weather-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .data-icon {
+    font-size: 24px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 4px;
+    padding-bottom: 1px;
+    /* background-color: rgb(239, 238, 240); */
+    border-radius: 10px;
+  }
+
+  .data-icon:hover {
+    background-color: rgb(239, 238, 240, 0.6);
+    cursor: pointer;
+    font-size: 25px;
+  }
+  
+  .text_nav {
+    font-weight: bold;
+    font-size: 16px;
+    line-height: 1.2;
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  #nord-km, #sued-km, #gotthard-pass-status {
+    font-weight: normal;
+    font-size: 16px;
+  }
+
+/* Modal */
+    body.modal-open {
+        overflow: hidden; /* Verhindert das Scrollen der gesamten Seite */
+    }
+
+   .chart-title {
+    font-weight: bold;
+    font-size: 16px;
+    margin: none;
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+    #modalTitle {
+      font-weight: bold;
+      font-size: 22px;
+      /* line-height: 1.2; */
+      text-align: center;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #0484fc;
+    }
+
+  .modal {
+    display: none;
+    position: fixed;
+    justify-content: center;
+    align-items: center;
+    z-index: 1001;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    /* overflow: auto; */
+    background-color: rgba(0,0,0,0.4);
+  }
+  
+  .modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    margin-top: 5vh;
+    padding: 10px 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 10px;
+    overflow: hidden; /* Prevent horizontal scrolling */
+    max-height: 82%; /* Adjust to fit the content */
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    position: sticky;
+    top: 0;
+    background-color: #fff;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0px; /* Add padding to separate the header from the content */
+    padding-top: none;
+}
+
+.modal-body {
+    overflow-y: auto; /* Allow vertical scrolling within the modal body */
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+    padding-top: 10px; /* Adjust padding if necessary */
+}
+
+  #trafficChart {
+    max-width: 600px;
+    max-height: 400px;
+  }
+
+  #heatmap {
+    width: 100%;
+    height: auto;
+    margin: 0 auto;
+    overflow: hidden;
+}
+  
+  
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+  }
+  
+  .close:hover,
+  .close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+/* Heatmap */
+.tooltip {
+    position: fixed;
+    text-align: left;
+    width: auto;
+    max-width: 150px; /* Maximale Breite festlegen */
+    height: auto;
+    padding: 8px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0;
+    border-radius: 8px;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 1500;
+    white-space: nowrap; /* Verhindert Zeilenumbrüche im Tooltip */
+}
+
+
+.legend text {
+    font-family: Arial, sans-serif; /* Setze die gewünschte Schriftart */
+    font-size: 12px; /* Setze die gewünschte Schriftgröße */
+    fill: #000; /* Setze die gewünschte Schriftfarbe */
+}
+
+
+/* 🛑 Media Queries für verschiedene Geräte 🛑 */
+@media (max-width: 480px) {
+    /* 🔶📱 Smartphones 📱🔶 */
     .gui-container {
         display: none; /* Verstecke GUI auf kleinen Bildschirmen */
     }
-}
 
-@media (min-width: 601px) and (max-width: 1024px) {
-    /* Tablets */
-    .gui-container {
-        display: none; /* Verstecke GUI auf mittleren Bildschirmen */
+    .data-icon {
+        font-size: 23px;
+      }
+
+    .data-icon:hover {
+    background-color: rgb(239, 238, 240, 1);
+    font-size: 23px;
+    }
+
+    /* Modal */
+    .chart-title {
+        font-weight: bold;
+        font-size: 14px;
+        text-align: center;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+    
+    #modalTitle {
+        font-weight: bold;
+        font-size: 20px;
+        line-height: 1.2;
+        text-align: center;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .modal-content {
+        width: 90vw; /* Damit das Modal auch auf Smartphones gut passt */
+    }
+
+    /* Heatmap */
+    #heatmap {
+        width: 100%; /* Volle Breite des Containers */
+        height: auto;
+        overflow-x: auto; /* Horizontales Scrollen ermöglichen */
+        -webkit-overflow-scrolling: touch; /* Für flüssiges Scrollen auf iOS */
+    }
+
+
+    /* Navbar Bottom Smartphones */
+    .bottom-navbar {
+        position: fixed;
+        bottom: 0px;
+        left: 0;
+        right: 0;
+        margin: none;
+        width: 100%; /* or a specific width */
+        background-color: rgba(239, 238, 240, 0.6);
+        border-radius: 0px;
+        padding: 0px;
+        box-shadow: none;
+        z-index: 1000;
+    }
+
+    .navbar-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        gap: 15px;
+        flex-wrap: nowrap; /* Prevent wrapping */
+        white-space: nowrap; /* Prevent text wrapping */
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .text_nav {
+        font-weight: bold;
+        font-size: 14px;
+        line-height: 1.2;
+        text-align: center;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+    
+      #nord-km, #sued-km, #gotthard-pass-status {
+        font-weight: normal;
+        font-size: 14px;
+      }
+    
+      .traffic-info, .pass-info, .weather-info {
+        flex: 0 1 30%; /* Adjust based on the number of blocks */
+        margin: 0 auto; /* Center each block */
+        justify-content: center;
+        text-align: center; /* Center the content inside each block */
     }
 }
 
-@media (min-width: 1025px) {
-    /* Desktops */
+@media (min-width: 481px) and (max-width: 768px) {
+    /* 🔶📋 Tablets 📋🔶 */
+    .gui-container {
+        display: none; /* Verstecke GUI auf kleinen Bildschirmen */
+    }
+
+    .data-icon {
+        font-size: 23px;
+      }
+
+    .data-icon:hover {
+    background-color: rgb(239, 238, 240, 1);
+    font-size: 23px;
+    }
+
+    .navbar-content {
+        gap: 20px;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1279px) {
+    /* 🔶💻 Laptops 💻🔶 */
+    .gui-container {
+        display: none; /* Zeige GUI auf großen Bildschirmen */
+    }
+}
+
+@media (min-width: 1280px) {
+    /* 🔶🖥️ Desktops 🖥️🔶 */
     .gui-container {
         display: block; /* Zeige GUI auf großen Bildschirmen */
     }

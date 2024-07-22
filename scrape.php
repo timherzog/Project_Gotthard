@@ -99,11 +99,12 @@ if (isset($results['tcs']['status']) && $results['tcs']['status'] !== null) {
     $gotthard_status = trim($gotthard_status_parts[0]);
 }
 
+// Gotthardpass Status "Offen" oder "Geschlossen"
 $gotthard_pass_status = 'Keine Daten';
 if (strpos(strtolower($gotthard_status), 'offen') !== false) {
-    $gotthard_pass_status = 'Offen';
+    $gotthard_pass_status = 'offen';
 } elseif (strpos(strtolower($gotthard_status), 'geschlossen') !== false || strpos(strtolower($gotthard_status), 'gesperrt') !== false) {
-    $gotthard_pass_status = 'Geschlossen';
+    $gotthard_pass_status = 'geschlossen';
 }
 
 $text_nord_1 = isset($results['gotthard']['text_nord_1']) ? $results['gotthard']['text_nord_1'] : null;

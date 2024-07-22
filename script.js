@@ -1,7 +1,78 @@
+// Determine FOV based on screen size
+let fov;
+if (window.innerWidth < 481) {
+    fov = 110; // Higher FOV for mobile devices to zoom out more
+} 
+else if (window.innerWidth < 768) {
+    fov = 100; // Standard FOV for tablets
+}
+else if (window.innerWidth < 1280) {
+    fov = 80; // Standard FOV for laptops
+}
+else {
+    fov = 75; // Standard FOV for desktop
+}
+
 // Szene, Kamera und Renderer erstellen 🏞️ 🎥 👾
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // Transparentes Canvas
+
+// Neue Arrays für Pfade und Fahrzeuge
+const paths = [
+    "Pfad_Autobahn_NtS_links",
+    "Pfad_Autobahn_NtS_rechts",
+    "Pfad_Autobahn_StN_links",
+    "Pfad_Autobahn_StN_rechts",
+    "Pfad_Passtrasse_NtS",
+    "Pfad_Passtrasse_StN"
+];
+
+const vehicles = [
+    "Auto_1_blau", "Auto_1_gelb", "Auto_1_grün", "Auto_1_orange", "Auto_1_rot",
+    "Postauto",
+    "Bus_blau", "Bus_grün", "Bus_orange", "Bus_rot",
+    "Wohnmobil_blau", "Wohnmobil_gelb", "Wohnmobil_grün", "Wohnmobil_orange", "Wohnmobil_rot",
+    "Lastwagen_blau", "Lastwagen_gelb", "Lastwagen_grün", "Lastwagen_orange", "Lastwagen_rot"
+];
+
+// Funktion zur Generierung zufälliger Fahrzeug-Pfad-Kombinationen
+function generateRandomVehiclePaths(numVehicles) {
+    const vehiclePaths = [];
+    const carPaths = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_StN_links", "Pfad_Passtrasse_NtS", "Pfad_Passtrasse_StN"];
+    const truckPaths = ["Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_rechts"];
+
+    for (let i = 0; i < numVehicles; i++) {
+        let randomVehicle = vehicles[Math.floor(Math.random() * vehicles.length)];
+        let randomPath;
+        let reverse;
+
+        // Überprüfen, ob es sich um einen Lastwagen handelt
+        const isTruck = randomVehicle.startsWith("Lastwagen");
+
+        if (isTruck) {
+            // Für Lastwagen: nur erlaubte Pfade
+            randomPath = truckPaths[Math.floor(Math.random() * truckPaths.length)];
+            reverse = randomPath === "Pfad_Autobahn_StN_rechts";
+        } else {
+            // Für andere Fahrzeuge: nur nicht-Lastwagen-Pfade
+            randomPath = carPaths[Math.floor(Math.random() * carPaths.length)];
+            reverse = randomPath === "Pfad_Autobahn_StN_links" || randomPath === "Pfad_Passtrasse_StN";
+        }
+
+        const speed = Math.random() * (0.0012 - 0.0003) + 0.0003;
+
+        // Hier die Änderung für die spezifischen Pfade
+        if (randomPath === "Pfad_Autobahn_NtS_links" || randomPath === "Pfad_Autobahn_NtS_rechts" ||
+            randomPath === "Pfad_Autobahn_StN_links" || randomPath === "Pfad_Autobahn_StN_rechts") {
+            reverse = !reverse; // Umkehrung der Richtung für diese Pfade
+        }
+
+        vehiclePaths.push({ name: randomVehicle, pathName: randomPath, speed, reverse });
+    }
+    return vehiclePaths;
+}
+
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio); // Pixelverhältnis anpassen
 document.body.appendChild(renderer.domElement);
@@ -18,49 +89,12 @@ controls.maxDistance = 13; // Maximum zoom distance
 controls.maxPolarAngle = Math.PI / 1.5; // Begrenzung auf 90 Grad nach oben
 controls.minPolarAngle = Math.PI / 3; // Begrenzung auf 45 Grad nach unten
 
-// // Gradienten-Hintergrund hinzufügen 🌅
-// const vertexShader = `
-//     varying vec2 vUv;
-//     void main() {
-//         vUv = uv;
-//         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-//     }
-// `;
-
-// const fragmentShader = `
-//     uniform vec3 topColor;
-//     uniform vec3 bottomColor;
-//     varying vec2 vUv;
-//     void main() {
-//         gl_FragColor = vec4(mix(bottomColor, topColor, vUv.y), 1.0);
-//     }
-// `;
-
-// const uniforms = {
-//     topColor: { value: new THREE.Color(0x0484fc) }, // Himmelsblau
-//     bottomColor: { value: new THREE.Color(0xb4f2fc) } // Weiß
-// };
-
-// const gradientMaterial = new THREE.ShaderMaterial({
-//     vertexShader,
-//     fragmentShader,
-//     uniforms,
-//     side: THREE.BackSide // Rückseite rendern
-// });
-
-// const skyBoxWidth = 500;
-// const skyBoxHeight = 2000; // Höher gemacht
-// const skyBoxDepth = 500;
-// const skyBoxGeometry = new THREE.BoxGeometry(skyBoxWidth, skyBoxHeight, skyBoxDepth);
-// const skyBox = new THREE.Mesh(skyBoxGeometry, gradientMaterial);
-// scene.add(skyBox);
-
 // Licht hinzufügen 💡
 const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Mäßige Intensität
 scene.add(ambientLight);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-directionalLight.position.set(1, 1, 1).normalize();
+directionalLight.position.set(2, 1, 1);
 scene.add(directionalLight);
 
 const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0xFFFFFF, 0.67); // Himmelblau und Weiß
@@ -88,6 +122,9 @@ directionalLight.shadow.camera.bottom = -100;
 camera.position.set(6.4, 3.1, 9.5); // x, y, z Position
 camera.lookAt(0, 0, 0); // Blickpunkt (Zentrum der Szene)
 
+// Show loading overlay initially
+document.getElementById('loading-overlay').style.display = 'flex';
+
 // GLTF-Modell laden 🖼️
 const gltfLoader = new THREE.GLTFLoader();
 let mixer;
@@ -103,6 +140,9 @@ gltfLoader.load('glb/Gotthard_4.2.glb', (gltf) => {
         }
     });
     scene.add(model);
+
+    // Hide loading overlay once the model is loaded
+    document.getElementById('loading-overlay').style.display = 'none';
 
 //Die Paths unsichtbar machen 🧶->⛔
 const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts"];
@@ -131,28 +171,21 @@ gltf.animations.forEach((clip) => {
     action.setLoop(THREE.LoopRepeat); // Endlos wiederholen
     action.play();
 });
+// Generiere zufällige Fahrzeug-Pfad-Kombinationen (z.B. 20 Fahrzeuge)
+const randomVehiclePaths = generateRandomVehiclePaths(20);
 
-// Fahrzeuge mit Pfaden und Geschwindigkeiten verbinden
-const vehicles = [
-    { name: 'Wohnmobil_grün', pathName: "Pfad_Autobahn_NtS_links", speed: 0.0010, reverse: true },
-    { name: "Lastwagen_orange", pathName: "Pfad_Autobahn_NtS_rechts", speed: 0.0012, reverse: true },
-    { name: "Auto_1_blau", pathName: "Pfad_Autobahn_StN_links", speed: 0.0012, reverse: false },
-    { name: "Lastwagen_rot", pathName: "Pfad_Autobahn_StN_rechts", speed: 0.0010, reverse: false },
-    { name: "Auto_1_grün", pathName: "Pfad_Passtrasse_NtS", speed: 0.0005, reverse: false },
-    { name: "Postauto", pathName: "Pfad_Passtrasse_StN", speed: 0.0005, reverse: true }
+    randomVehiclePaths.forEach((vehicle, index) => {
+        const vehicleObject = model.getObjectByName(vehicle.name);
+        const pathObject = model.getObjectByName(vehicle.pathName);
 
-];
-
-vehicles.forEach(vehicle => {
-    const vehicleObject = model.getObjectByName(vehicle.name);
-    const pathObject = model.getObjectByName(vehicle.pathName);
-
-    if (vehicleObject && pathObject) {
-        animateVehicle(vehicleObject, pathObject, vehicle.speed, vehicle.reverse);
-    } else {
-        console.warn(`Fahrzeug oder Pfad nicht gefunden: ${vehicle.name}, ${vehicle.pathName}`);
-    }
-});
+        if (vehicleObject && pathObject) {
+            const clonedVehicle = vehicleObject.clone();
+            scene.add(clonedVehicle);
+            animateVehicle(clonedVehicle, pathObject, vehicle.speed, vehicle.reverse, Math.random());
+        } else {
+            console.warn(`Fahrzeug oder Pfad nicht gefunden: ${vehicle.name}, ${vehicle.pathName}`);
+        }
+    });
 
 function animate() {
     requestAnimationFrame(animate);
@@ -164,58 +197,55 @@ function animate() {
 animate();
 }, undefined, (error) => {
 console.error(error);
+document.getElementById('loading-overlay').innerHTML = '<p>Failed to load the 3D model. Please try again later.</p>';
 });
 
 function animateVehicle(vehicle, path, speed, reverse, initialProgress = 0) {
-// Überprüfen ob das Pfadobjekt tatsächlich eine Geometrie hat
-if (!path.geometry || !path.geometry.attributes.position) {
-    console.error(`Pfad ${path.name} hat keine Geometrie.`);
-    return;
-}
-
-const points = path.geometry.attributes.position.array;
-const curvePoints = [];
-for (let i = 0; i < points.length; i += 3) {
-    curvePoints.push(new THREE.Vector3(points[i], points[i + 1], points[i + 2]));
-}
-const curve = new THREE.CatmullRomCurve3(curvePoints);
-let progress = reverse ? 1 - initialProgress : initialProgress;
-
-function moveVehicle() {
-    requestAnimationFrame(moveVehicle);
-
-    progress += reverse ? -speed : speed;
-    if (progress > 1) progress -= 1; // Reset progress to loop the animation
-    if (progress < 0) progress += 1; // Reset progress to loop the animation in reverse
-
-    const position = curve.getPointAt(progress);
-    const tangent = curve.getTangentAt(progress).normalize();
-
-    vehicle.position.copy(position);
-
-    // verhindern, dass sich die Fahrzeuge auf der Passtrasse seitwärts drehen
-    if (path.name === "Pfad_Passtrasse_NtS" ||path.name === "Pfad_Passtrasse_StN") {
-        // Hier verhindern wir die Z-Rotation für den spezifischen Pfad
-        const axis = new THREE.Vector3(0, 1, 0);
-        const up = new THREE.Vector3(0, 0, 1);
-        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
-        const euler = new THREE.Euler().setFromQuaternion(quaternion, 'YXZ');
-        euler.z = 0; // Z-Rotation auf 0 setzen
-        vehicle.quaternion.setFromEuler(euler);
-    } else {
-        const axis = new THREE.Vector3(0, 1, 0);
-        const up = new THREE.Vector3(0, 0, 1);
-        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
-        vehicle.quaternion.copy(quaternion);
+    if (!path.geometry || !path.geometry.attributes.position) {
+        console.error(`Pfad ${path.name} hat keine Geometrie.`);
+        return;
     }
 
-    // Fahrzeug um 180 Grad um die Y-Achse drehen, wenn es in die entgegengesetzte Richtung fährt
-    if (reverse) {
-        vehicle.rotateY(Math.PI);
+    const points = path.geometry.attributes.position.array;
+    const curvePoints = [];
+    for (let i = 0; i < points.length; i += 3) {
+        curvePoints.push(new THREE.Vector3(points[i], points[i + 1], points[i + 2]));
     }
-}
+    const curve = new THREE.CatmullRomCurve3(curvePoints);
+    let progress = reverse ? 1 - initialProgress : initialProgress;
 
-moveVehicle();
+    function moveVehicle() {
+        requestAnimationFrame(moveVehicle);
+
+        progress += reverse ? -speed : speed;
+        if (progress > 1) progress -= 1;
+        if (progress < 0) progress += 1;
+
+        const position = curve.getPointAt(progress);
+        const tangent = curve.getTangentAt(progress).normalize();
+
+        vehicle.position.copy(position);
+
+        if (path.name === "Pfad_Passtrasse_NtS" || path.name === "Pfad_Passtrasse_StN") {
+            const axis = new THREE.Vector3(0, 1, 0);
+            const up = new THREE.Vector3(0, 0, 1);
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
+            const euler = new THREE.Euler().setFromQuaternion(quaternion, 'YXZ');
+            euler.z = 0;
+            vehicle.quaternion.setFromEuler(euler);
+        } else {
+            const axis = new THREE.Vector3(0, 1, 0);
+            const up = new THREE.Vector3(0, 0, 1);
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent);
+            vehicle.quaternion.copy(quaternion);
+        }
+
+        if (reverse) {
+            vehicle.rotateY(Math.PI);
+        }
+    }
+
+    moveVehicle();
 }
 
 // dat.GUI zur Steuerung hinzufügen 🎮
@@ -280,16 +310,38 @@ lightFolder.open();
 window.addEventListener('resize', onWindowResize, false);
 
 function onWindowResize() {
+    // Adjust FOV on resize
+    if (window.innerWidth < 481) {
+        camera.fov = 110; // Higher FOV for mobile devices to zoom out more
+    } 
+    else if (window.innerWidth < 768) {
+        camera.fov = 100; // Standard FOV for tablets
+    }
+    else if (window.innerWidth < 1280) {
+        camera.fov = 80; // Standard FOV for laptops
+    }
+    else {
+        camera.fov = 75; // Standard FOV for desktop
+    }
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth / 2, window.innerHeight / 2); // Halbiert die Auflösung damit die Animation flüssiger läuft
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    //renderer.setSize(window.innerWidth / 2, window.innerHeight / 2); // Halbiert die Auflösung damit die Animation flüssiger läuft
 
 }
 
+// ⛔ Funktionen zur Anpassung der Szene entsprechend der Passzugänglichkeit ⛔
+function adjustSceneOpen() {
+    
+}
 
-let nordStauLevel = ''; // Variable für den aktuellen Verkehrszustand
+function adjustSceneClosed() {
+    
+}
 
-// Funktionen zur Anpassung der Szene entsprechend der Verkehrsdichte
+let nordStauLevel = ''; // Variable für den aktuellen Verkehrszustand vor Tunnel im Norden
+
+// ❗Funktionen zur Anpassung der Szene entsprechend der Verkehrsdichte vor Tunnel❗
 function adjustSceneClearTraffic() {
     nordStauLevel = 'Kein Stau'; // Aktualisierung von nordStauLevel
     '🚗';
@@ -331,10 +383,19 @@ $(document).ready(function() {
                 //$('#gotthard-temperature').html('Temperatur: ' + data.gotthard_temperature);
 
                 // Kilometeranzahl in die neuen div-Elemente einfügen
-                $('#nord_km').html('Stau Nord: ' + (data.nord_km !== null ? data.nord_km + ' km' : 'Keine Daten'));
-                $('#sued_km').html('Stau Süd: ' + (data.sued_km !== null ? data.sued_km + ' km' : 'Keine Daten'));
+                // Update navbar data
+                $('#nord-km').html(data.nord_km !== null && data.nord_km !== 0 ? data.nord_km + ' km Stau' : 'freie Fahrt');
+                $('#sued-km').html(data.sued_km !== null && data.sued_km !== 0 ? data.sued_km + ' km Stau' : 'freie Fahrt');
+                $('#gotthard-pass-status').html(data.gotthard_pass_status || 'Keine Daten');
 
-                // Update der Verkehrsszene entsprechend der Verkehrsdichte
+                // ⛔ Update der Szene entsprechend Passzugänglichkeit ⛔
+                if (data.gotthard_status === 'Offen') {
+                    adjustSceneOpen();
+                } else {
+                    adjustSceneClosed();
+                }
+
+                // ❗ Update der Verkehrsszene entsprechend der Verkehrsdichte ❗
                 if (data.nord_km === 0) {
                     adjustSceneClearTraffic();
                 } else if (data.nord_km > 0 && data.nord_km <= 5) {

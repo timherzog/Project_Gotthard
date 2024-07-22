@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gotthardstatus</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" defer></script>
+    <script src="https://kit.fontawesome.com/a6c2fb72df.js" crossorigin="anonymous"></script>
+    <!-- Einbindung von D3.js -->
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+
     <link rel="stylesheet" type="text/css" href="style.css">
 
     <!-- Standard favicon -->
@@ -24,6 +28,11 @@
 </head>
 
 <body>
+
+    <div id="loading-overlay">
+        <div class="loader"></div>
+        <p>Loading 3D model...</p>
+    </div>
     
     <!-- Einbindung von THREE.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
@@ -37,6 +46,47 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js" defer></script>
     <!-- Einbindung von script.js -->
     <script src="script.js" defer></script>
+    
+    <!-- Modal -->
+    <div id="dataModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Staudaten über die Zeit</h2>
+                <span class="close">&times;</span>
+            </div>
+          <div class="modal-body">
+            <h3 class="chart-title">Durchschnitt Staukilometer pro Stunde <br> (letzte 24 Stunden)</h3>
+            <canvas id="trafficChart"></canvas>
+            <h3 class="chart-title">Heatmap für Staudaten des Nordportals</h3>
+            <div id="heatmap"></div>
+        </div>
+        </div>
+      </div>
+
+    <!-- Navbar Bottom -->
+    <nav class="bottom-navbar">
+        <div class="navbar-content">
+          <div class="traffic-info">
+            <span class="text_nav">Nordportal<br><span id="nord-km">Laden...</span></span>
+          </div>
+          <div class="pass-info">
+            <span class="text_nav">Gotthardpass<br><span id="gotthard-pass-status">Laden...</span></span>
+          </div>
+          <div class="traffic-info">
+            <span class="text_nav">Südportal<br><span id="sued-km">Laden...</span></span>
+          </div>
+          <div id="dataIcon" class="data-icon">
+            <i class="fa-solid fa-chart-line" style="color: #000000;"></i><br>
+        </div>
+        </div>
+      </nav>
+    
+    <!-- Einbindung chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="chart.js"></script>
+    <script src="heatmap.js"></script>
+    
+
 </body>
 
 </html>
