@@ -1,3 +1,4 @@
+// Berechnung der durchschnittlichen Staukilometer pro Stunde
 <?php
 require_once 'config.php';
 

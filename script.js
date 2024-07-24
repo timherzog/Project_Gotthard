@@ -1,31 +1,84 @@
-// Determine FOV based on screen size
+// Grundlegende Szeneneinstellungen 🏞️ 
+const scene = new THREE.Scene();
 let fov;
-if (window.innerWidth < 481) {
-    fov = 110; // Higher FOV for mobile devices to zoom out more
-} 
-else if (window.innerWidth < 768) {
-    fov = 100; // Standard FOV for tablets
-}
-else if (window.innerWidth < 1280) {
-    fov = 80; // Standard FOV for laptops
-}
-else {
-    fov = 75; // Standard FOV for desktop
+
+// FOV basierend auf der Bildschirmgröße bestimmen
+function determineFOV() {
+    if (window.innerWidth < 481) {
+        return 110; // Höheres FOV für Mobilgeräte
+    } else if (window.innerWidth < 768) {
+        return 100; // Standard-FOV für Tablets
+    } else if (window.innerWidth < 1280) {
+        return 80; // Standard-FOV für Laptops
+    } else {
+        return 75; // Standard-FOV für Desktops
+    }
 }
 
-// Szene, Kamera und Renderer erstellen 🏞️ 🎥 👾
-const scene = new THREE.Scene();
+fov = determineFOV();
+
+// Kamera und Renderer Setup 🎥 👾
 const camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // Transparentes Canvas
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio); // Pixelverhältnis anpassen
+document.body.appendChild(renderer.domElement);
 
-// Neue Arrays für Pfade und Fahrzeuge
+// OrbitControls Setup 🌀
+function setupOrbitControls() {
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; // Trägheitseffekt (für sanftere Kamerabewegung)
+    controls.dampingFactor = 0.1;
+    controls.screenSpacePanning = false;
+    controls.enablePan = false; // Panning deaktivieren
+    controls.minDistance = 5; // Minimaler Zoom-Abstand
+    controls.maxDistance = 13; // Maximaler Zoom-Abstand
+    controls.maxPolarAngle = Math.PI / 1.5; // Begrenzung der vertikalen Rotation nach oben
+    controls.minPolarAngle = Math.PI / 3; // Begrenzung der vertikalen Rotation nach unten
+}
+
+setupOrbitControls();
+
+// Lichtquellen Setup 💡
+
+const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Mäßige Intensität
+scene.add(ambientLight);
+
+const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0xFFFFFF, 0.67); // Himmelblau und Weiß
+scene.add(hemisphereLight);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+directionalLight.position.set(2, 1, 1);
+scene.add(directionalLight);
+
+// Zusätzliches Hemisphere Light für die Unterseite
+const bottomHemisphereLight = new THREE.HemisphereLight(0xFFFFFF, 0x404040, 0.5);
+bottomHemisphereLight.position.set(0, -1, 0);
+scene.add(bottomHemisphereLight);
+
+// Schatten-Einstellungen
+directionalLight.castShadow = true;
+directionalLight.shadow.mapSize.width = 1024; // Standardgröße
+directionalLight.shadow.mapSize.height = 1024; // Standardgröße
+directionalLight.shadow.bias = -0.005; // Bessere Schattenqualität
+
+// Schattenkamera-Einstellungen für weiche Schatten
+directionalLight.shadow.camera.near = 0.5;
+directionalLight.shadow.camera.far = 500;
+directionalLight.shadow.camera.left = -100;
+directionalLight.shadow.camera.right = 100;
+directionalLight.shadow.camera.top = 100;
+directionalLight.shadow.camera.bottom = -100;
+
+// Kamera-Position setzen 🎥
+camera.position.set(6.4, 3.1, 9.5); // x, y, z Position
+camera.lookAt(0, 0, 0); // Blickpunkt (Zentrum der Szene)
+
+// Arrays für Pfade und Fahrzeuge
 const paths = [
-    "Pfad_Autobahn_NtS_links",
-    "Pfad_Autobahn_NtS_rechts",
-    "Pfad_Autobahn_StN_links",
-    "Pfad_Autobahn_StN_rechts",
-    "Pfad_Passtrasse_NtS",
-    "Pfad_Passtrasse_StN"
+    "Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts",
+    "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts",
+    "Pfad_Passtrasse_NtS", "Pfad_Passtrasse_StN"
 ];
 
 const vehicles = [
@@ -73,56 +126,7 @@ function generateRandomVehiclePaths(numVehicles) {
     return vehiclePaths;
 }
 
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio); // Pixelverhältnis anpassen
-document.body.appendChild(renderer.domElement);
-
-// OrbitControls hinzufügen 🌀
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; // Trägheitseffekt (für sanftere Kamerabewegung)
-controls.dampingFactor = 0.1;
-controls.screenSpacePanning = false;
-controls.enablePan = false; // Komplettiert das Panning
-controls.minDistance = 5; // Minimum zoom distance
-controls.maxDistance = 13; // Maximum zoom distance
-// Vertikale Rotation einschränken
-controls.maxPolarAngle = Math.PI / 1.5; // Begrenzung auf 90 Grad nach oben
-controls.minPolarAngle = Math.PI / 3; // Begrenzung auf 45 Grad nach unten
-
-// Licht hinzufügen 💡
-const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Mäßige Intensität
-scene.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-directionalLight.position.set(2, 1, 1);
-scene.add(directionalLight);
-
-const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0xFFFFFF, 0.67); // Himmelblau und Weiß
-scene.add(hemisphereLight);
-
-// Zusätzliches Hemisphere Light für die Unterseite
-const bottomHemisphereLight = new THREE.HemisphereLight(0xFFFFFF, 0x404040, 0.5);
-bottomHemisphereLight.position.set(0, -1, 0);
-scene.add(bottomHemisphereLight);
-
-directionalLight.castShadow = true;
-directionalLight.shadow.mapSize.width = 1024; // Standardgröße
-directionalLight.shadow.mapSize.height = 1024; // Standardgröße
-directionalLight.shadow.bias = -0.005; // Bessere Schattenqualität
-
-// Schattenkamera-Einstellungen für weiche Schatten
-directionalLight.shadow.camera.near = 0.5;
-directionalLight.shadow.camera.far = 500;
-directionalLight.shadow.camera.left = -100;
-directionalLight.shadow.camera.right = 100;
-directionalLight.shadow.camera.top = 100;
-directionalLight.shadow.camera.bottom = -100;
-
-// Kamera-Position setzen 🎥
-camera.position.set(6.4, 3.1, 9.5); // x, y, z Position
-camera.lookAt(0, 0, 0); // Blickpunkt (Zentrum der Szene)
-
-// Show loading overlay initially
+// Loading Overlay anzeigen 🔋 
 document.getElementById('loading-overlay').style.display = 'flex';
 
 // GLTF-Modell laden 🖼️
@@ -132,74 +136,64 @@ let clock = new THREE.Clock();
 
 gltfLoader.load('glb/Gotthard_4.2.glb', (gltf) => {
     const model = gltf.scene;
-    // Traverse-Block hier, innerhalb des Callbacks
-    model.traverse((node) => {
-        if (node.isMesh) {
-            node.material.flatShading = true; // Flat Shading für einen Low-Poly-Effekt
+
+    // Traverse-Block für Modell-Anpassungen
+    //model.traverse((node) => {
+       // if (node.isMesh) {
+            //node.material.flatShading = true; // Flat Shading für einen Low-Poly-Effekt
             //node.material.color = new THREE.Color(0xff0000); // Beispiel: Rot für kräftige Farben
-        }
-    });
+       // }
+   // });
     scene.add(model);
 
-    // Hide loading overlay once the model is loaded
+    // Loading Overlay ausblenden 🪫
     document.getElementById('loading-overlay').style.display = 'none';
 
-//Die Paths unsichtbar machen 🧶->⛔
-const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts"];
-pathObjects.forEach(pathName => {
-    const pathObject = model.getObjectByName(pathName);
-    if (pathObject) {
-        // Falls das Objekt ein Linien- oder NURBS-Objekt ist, ändern wir das Material
-        if (pathObject.type === 'Line' || pathObject.type === 'LineSegments' || pathObject.type === 'LineLoop') {
-            pathObject.material.visible = false;
-            console.log(`Pfad gefunden und unsichtbar gemacht: ${pathName}`);
-        } else if (pathObject.type === 'NURBS') {
-            pathObject.visible = false;
-            console.log(`NURBS-Pfad gefunden und unsichtbar gemacht: ${pathName}`);
-        }
-    } else {
-        console.warn(`Pfad nicht gefunden: ${pathName}`);
+    //Die Paths unsichtbar machen 🧶->⛔
+    function hidePathObjects() {
+        const pathObjects = ["Pfad_Autobahn_NtS_links", "Pfad_Autobahn_NtS_rechts", "Pfad_Autobahn_StN_links", "Pfad_Autobahn_StN_rechts"];
+        pathObjects.forEach(pathName => {
+            const pathObject = model.getObjectByName(pathName);
+            if (pathObject) {
+                if (pathObject.type === 'Line' || pathObject.type === 'LineSegments' || pathObject.type === 'LineLoop') {
+                    pathObject.material.visible = false;
+                } else if (pathObject.type === 'NURBS') {
+                    pathObject.visible = false;
+                }
+            }
+        });
     }
-});
 
+    hidePathObjects();
 
-mixer = new THREE.AnimationMixer(model);
+    // Animationen starten
+    mixer = new THREE.AnimationMixer(model);
+    gltf.animations.forEach((clip) => {
+        const action = mixer.clipAction(clip);
+        action.setLoop(THREE.LoopRepeat);
+        action.play();
+    });
 
-// Hier werden alle Animationen des Modells gestartet
-gltf.animations.forEach((clip) => {
-    const action = mixer.clipAction(clip);
-    action.setLoop(THREE.LoopRepeat); // Endlos wiederholen
-    action.play();
-});
-// Generiere zufällige Fahrzeug-Pfad-Kombinationen (z.B. 20 Fahrzeuge)
-const randomVehiclePaths = generateRandomVehiclePaths(20);
-
+    // Zufällige Fahrzeuge generieren und animieren 🚗
+    const randomVehiclePaths = generateRandomVehiclePaths(20);
     randomVehiclePaths.forEach((vehicle, index) => {
         const vehicleObject = model.getObjectByName(vehicle.name);
         const pathObject = model.getObjectByName(vehicle.pathName);
-
         if (vehicleObject && pathObject) {
             const clonedVehicle = vehicleObject.clone();
             scene.add(clonedVehicle);
             animateVehicle(clonedVehicle, pathObject, vehicle.speed, vehicle.reverse, Math.random());
-        } else {
-            console.warn(`Fahrzeug oder Pfad nicht gefunden: ${vehicle.name}, ${vehicle.pathName}`);
         }
-    });
+        });
 
-function animate() {
-    requestAnimationFrame(animate);
-    const delta = clock.getDelta();
-    mixer.update(delta);
-    renderer.render(scene, camera);
-}
-
-animate();
+    // Animation starten
+    animate();
 }, undefined, (error) => {
-console.error(error);
-document.getElementById('loading-overlay').innerHTML = '<p>Failed to load the 3D model. Please try again later.</p>';
+    console.error(error);
+    document.getElementById('loading-overlay').innerHTML = '<p>Failed to load the 3D model. Please try again later.</p>';
 });
 
+// Funktion zur Animation der Fahrzeuge
 function animateVehicle(vehicle, path, speed, reverse, initialProgress = 0) {
     if (!path.geometry || !path.geometry.attributes.position) {
         console.error(`Pfad ${path.name} hat keine Geometrie.`);
@@ -248,7 +242,7 @@ function animateVehicle(vehicle, path, speed, reverse, initialProgress = 0) {
     moveVehicle();
 }
 
-// dat.GUI zur Steuerung hinzufügen 🎮
+// GUI Setup 🎮
 const gui = new dat.GUI();
 gui.domElement.classList.add('gui-container');
 
@@ -265,7 +259,6 @@ function updateCamera() {
 
 // Licht-Steuerung 🎮-💡
 const lightFolder = gui.addFolder('Light Settings');
-
 
 // Ambient Light
 const ambientLightFolder = lightFolder.addFolder('Ambient Light');
@@ -310,42 +303,29 @@ lightFolder.open();
 window.addEventListener('resize', onWindowResize, false);
 
 function onWindowResize() {
-    // Adjust FOV on resize
-    if (window.innerWidth < 481) {
-        camera.fov = 110; // Higher FOV for mobile devices to zoom out more
-    } 
-    else if (window.innerWidth < 768) {
-        camera.fov = 100; // Standard FOV for tablets
-    }
-    else if (window.innerWidth < 1280) {
-        camera.fov = 80; // Standard FOV for laptops
-    }
-    else {
-        camera.fov = 75; // Standard FOV for desktop
-    }
+    camera.fov = determineFOV();
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    //renderer.setSize(window.innerWidth / 2, window.innerHeight / 2); // Halbiert die Auflösung damit die Animation flüssiger läuft
-
 }
 
 // ⛔ Funktionen zur Anpassung der Szene entsprechend der Passzugänglichkeit ⛔
 function adjustSceneOpen() {
-    
+    // Implementierung für offene Szene
 }
 
 function adjustSceneClosed() {
-    
+    // Implementierung für geschlossene Szene
 }
 
+// Funktionen zur Anpassung der Verkehrsdichte
 let nordStauLevel = ''; // Variable für den aktuellen Verkehrszustand vor Tunnel im Norden
 
 // ❗Funktionen zur Anpassung der Szene entsprechend der Verkehrsdichte vor Tunnel❗
 function adjustSceneClearTraffic() {
     nordStauLevel = 'Kein Stau'; // Aktualisierung von nordStauLevel
     '🚗';
-    //hier Szene normal laufen lassen ohne Ampel usw. Das alles ausserhalb dieser Funktion und mit denen unten dran manipulieren. nordStauLevel kann verwendet werden, um Text auf der Website anzeigen zu lassen. Wenn ich etwas an der Szene ändern will aufgrund des Verkehrszustandes kommt das unten rein.
+    
 }
 
 function adjustSceneLightTraffic() {
@@ -363,6 +343,7 @@ function adjustSceneHeavyTraffic() {
     '🚗 🚗 🚗 🚗';
 }
 
+// jQuery-Funktion / Datenabfrage
 $(document).ready(function() {
     function loadVerkehrsmeldungen() {
         $.ajax({
@@ -417,20 +398,19 @@ $(document).ready(function() {
     }
 
     loadVerkehrsmeldungen();
-    setInterval(loadVerkehrsmeldungen, 300000); // alle 5 Minuten (300000 Millisekunden)
+    setInterval(loadVerkehrsmeldungen, 300000); // Alle 5 Minuten aktualisieren
+});
 
-    ;
+// Renderer-Einstellungen
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.outputEncoding = THREE.sRGBEncoding;
 
-
+// Haupt-Animations-Loop
 function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
     mixer.update(delta);
+    renderer.render(scene, camera);
     //composer.render();
 }
-
-
-});

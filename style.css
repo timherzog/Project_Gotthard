@@ -126,7 +126,7 @@ canvas {
       /* line-height: 1.2; */
       text-align: center;
       font-family: Arial, Helvetica, sans-serif;
-      color: #0484fc;
+      color: black;
     }
 
   .modal {
@@ -232,8 +232,8 @@ canvas {
 
 
 /* 🛑 Media Queries für verschiedene Geräte 🛑 */
+/* 🔶📱 Smartphones 📱🔶 */
 @media (max-width: 480px) {
-    /* 🔶📱 Smartphones 📱🔶 */
     .gui-container {
         display: none; /* Verstecke GUI auf kleinen Bildschirmen */
     }
@@ -324,8 +324,8 @@ canvas {
     }
 }
 
+/* 🔶📋 Tablets 📋🔶 */
 @media (min-width: 481px) and (max-width: 768px) {
-    /* 🔶📋 Tablets 📋🔶 */
     .gui-container {
         display: none; /* Verstecke GUI auf kleinen Bildschirmen */
     }
@@ -344,15 +344,14 @@ canvas {
     }
 }
 
+/* 🔶💻 Laptops 💻🔶 */
 @media (min-width: 769px) and (max-width: 1279px) {
-    /* 🔶💻 Laptops 💻🔶 */
     .gui-container {
         display: none; /* Zeige GUI auf großen Bildschirmen */
     }
 }
 
 @media (min-width: 1280px) {
-    /* 🔶🖥️ Desktops 🖥️🔶 */
     .gui-container {
         display: block; /* Zeige GUI auf großen Bildschirmen */
     }
