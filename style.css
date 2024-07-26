@@ -177,35 +177,46 @@ canvas {
     overflow-x: hidden; /* Prevent horizontal scrolling */
     padding-top: 10px; /* Adjust padding if necessary */
 }
-
-  #trafficChart {
+  /* chart.js */
+  #trafficChart, 
+  #trafficChart2days, 
+  #trafficChart1week {
     max-width: 600px;
     max-height: 400px;
   }
 
+  .chart-buttons {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  
+  .chart-buttons button {
+    padding: 10px 15px;
+    margin: 0 5px;
+    border: none;
+    background-color: #f0f0f0;
+    cursor: pointer;
+  }
+  
+  .chart-buttons button.active {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .chart-container {
+    width: 100%;
+    height: 400px;
+  }
+
+  /* Heatmap D3.js */
   #heatmap {
     width: 100%;
     height: auto;
     margin: 0 auto;
     overflow: hidden;
 }
-  
-  
-  .close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-  }
-  
-  .close:hover,
-  .close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
-  }
 
-/* Heatmap */
 .tooltip {
     position: fixed;
     text-align: left;
@@ -223,15 +234,29 @@ canvas {
     white-space: nowrap; /* Verhindert Zeilenumbrüche im Tooltip */
 }
 
-
 .legend text {
     font-family: Arial, sans-serif; /* Setze die gewünschte Schriftart */
     font-size: 12px; /* Setze die gewünschte Schriftgröße */
     fill: #000; /* Setze die gewünschte Schriftfarbe */
 }
 
+/* Close Button */
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
 
 /* 🛑 Media Queries für verschiedene Geräte 🛑 */
+
 /* 🔶📱 Smartphones 📱🔶 */
 @media (max-width: 480px) {
     .gui-container {

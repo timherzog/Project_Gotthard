@@ -54,9 +54,22 @@
                 <h2 id="modalTitle">Staudaten über die Zeit</h2>
                 <span class="close">&times;</span>
             </div>
-          <div class="modal-body">
-            <h3 class="chart-title">Durchschnitt Staukilometer pro Stunde <br> (letzte 24 Stunden)</h3>
-            <canvas id="trafficChart"></canvas>
+            <div class="modal-body">
+              <h3 class="chart-title">Durchschnitt Staukilometer pro Stunde</h3>
+              <div class="chart-buttons">
+                  <button id="btn24h" class="active">Letzte 24h</button>
+                  <button id="btn2days">Letzte 2 Tage</button>
+                  <button id="btn1week">Letzte Woche</button>
+              </div>
+              <div id="chart24h" class="chart-container">
+                  <canvas id="trafficChart"></canvas>
+              </div>
+              <div id="chart2days" class="chart-container" style="display: none;">
+                  <canvas id="trafficChart2days"></canvas>
+              </div>
+              <div id="chart1week" class="chart-container" style="display: none;">
+                  <canvas id="trafficChart1week"></canvas>
+              </div>
             <h3 class="chart-title">Heatmap für Staudaten des Nordportals</h3>
             <div id="heatmap"></div>
         </div>

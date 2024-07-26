@@ -216,7 +216,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Event-Listener für Klick auf das Daten-Icon
     document.getElementById('dataIcon').addEventListener('click', function() {
         document.getElementById('dataModal').style.display = 'block';
-        createChart();  // Ensure createChart is defined
+        //createChart();  // Ensure createChart is defined
         createHeatmap();
     });
 
