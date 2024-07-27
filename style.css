@@ -57,7 +57,7 @@ canvas {
     left: 0;
     right: 0;
     margin: 0 auto;
-    width: fit-content; /* or a specific width */
+    width: fit-content;
     background-color: rgba(239, 238, 240, 0.6);
     border-radius: 20px;
     padding: 10px 20px;
@@ -112,7 +112,7 @@ canvas {
         overflow: hidden; /* Verhindert das Scrollen der gesamten Seite */
     }
 
-   .chart-title {
+  .chart-title-line, .chart-title-heatmap {
     font-weight: bold;
     font-size: 16px;
     margin: none;
@@ -120,14 +120,18 @@ canvas {
     font-family: Arial, Helvetica, sans-serif;
   }
 
-    #modalTitle {
-      font-weight: bold;
-      font-size: 22px;
-      /* line-height: 1.2; */
-      text-align: center;
-      font-family: Arial, Helvetica, sans-serif;
-      color: black;
-    }
+  .chart-title-heatmap {
+    margin-top: 40px;
+  }
+
+  #modalTitle {
+    font-weight: bold;
+    font-size: 22px;
+    /* line-height: 1.2; */
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    color: black;
+  }
 
   .modal {
     display: none;
@@ -154,8 +158,8 @@ canvas {
     width: 80%;
     max-width: 600px;
     border-radius: 10px;
-    overflow: hidden; /* Prevent horizontal scrolling */
-    max-height: 82%; /* Adjust to fit the content */
+    overflow: hidden; /* verhindert horizontales Scrolling */
+    max-height: 82%;
     display: flex;
     flex-direction: column;
   }
@@ -168,14 +172,14 @@ canvas {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 0px; /* Add padding to separate the header from the content */
+    padding-bottom: 0px;
     padding-top: none;
 }
 
 .modal-body {
-    overflow-y: auto; /* Allow vertical scrolling within the modal body */
-    overflow-x: hidden; /* Prevent horizontal scrolling */
-    padding-top: 10px; /* Adjust padding if necessary */
+    overflow-y: auto;
+    overflow-x: hidden; /* horizontales Scrolling verhindern */
+    padding-top: 10px;
 }
   /* chart.js */
   #trafficChart, 
@@ -197,10 +201,12 @@ canvas {
     border: none;
     background-color: #f0f0f0;
     cursor: pointer;
+    border-radius: 5px;
   }
   
-  .chart-buttons button.active {
-    background-color: #007bff;
+  .chart-buttons button.active,
+  .chart-buttons button.heatmap-active {
+    background-color: grey;
     color: white;
   }
   
@@ -235,25 +241,76 @@ canvas {
 }
 
 .legend text {
-    font-family: Arial, sans-serif; /* Setze die gewünschte Schriftart */
-    font-size: 12px; /* Setze die gewünschte Schriftgröße */
-    fill: #000; /* Setze die gewünschte Schriftfarbe */
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    fill: #000;
 }
 
-/* Close Button */
-.close {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
-}
+  /* Close Button */
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+  }
 
-.close:hover,
-.close:focus {
-  color: black;
-  text-decoration: none;
-  cursor: pointer;
-}
+  .close:hover,
+  .close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  /* Custom Legend */
+  .custom-legend {
+    width: 60%;
+    max-width: 400px;
+    margin: 10px auto 20px auto; 
+    padding: 10px;
+  }
+
+  .legend-bar {
+    display: flex;
+    height: 20px;
+  }
+
+  .color-block {
+    flex: 1;
+  }
+
+  .color-block:nth-child(1) { background-color: #f7f7f7; }
+  .color-block:nth-child(2) { background-color: #fee5d9; }
+  .color-block:nth-child(3) { background-color: #fcbba1; }
+  .color-block:nth-child(4) { background-color: #fc9272; }
+  .color-block:nth-child(5) { background-color: #fb6a4a; }
+  .color-block:nth-child(6) { background-color: #ef3b2c; }
+  .color-block:nth-child(7) { background-color: #cb181d; }
+  .color-block:nth-child(8) { background-color: #99000d; }
+  .color-block:nth-child(9) { background-color: #67000d; }
+
+  .legend-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #666;
+    width: 103%;
+  }
+
+  .legend-labels span {
+    position: relative;
+  }
+
+  .legend-labels span::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 0%;
+    height: 5px;
+    /* border-left: 1px solid #666; */
+    transform: translateX(-50%);
+  }
 
 /* 🛑 Media Queries für verschiedene Geräte 🛑 */
 
@@ -273,13 +330,17 @@ canvas {
     }
 
     /* Modal */
-    .chart-title {
+    .chart-title-line, .chart-title-heatmap {
         font-weight: bold;
         font-size: 14px;
         text-align: center;
         font-family: Arial, Helvetica, sans-serif;
       }
     
+      .chart-title-heatmap {
+        margin-top: 30px;
+      }
+
     #modalTitle {
         font-weight: bold;
         font-size: 20px;
@@ -289,7 +350,7 @@ canvas {
     }
 
     .modal-content {
-        width: 90vw; /* Damit das Modal auch auf Smartphones gut passt */
+        width: 90vw;
     }
 
     /* Heatmap */
@@ -300,6 +361,18 @@ canvas {
         -webkit-overflow-scrolling: touch; /* Für flüssiges Scrollen auf iOS */
     }
 
+    /* Custom Legend */
+    .custom-legend {
+      width: 80%;
+      max-width: 600px;
+      margin: 10px auto 20px auto; 
+      padding: 10px;
+    }
+
+    .legend-labels {
+      font-size: 8px;
+      width: 103%;
+    }
 
     /* Navbar Bottom Smartphones */
     .bottom-navbar {
@@ -308,7 +381,7 @@ canvas {
         left: 0;
         right: 0;
         margin: none;
-        width: 100%; /* or a specific width */
+        width: 100%;
         background-color: rgba(239, 238, 240, 0.6);
         border-radius: 0px;
         padding: 0px;
@@ -322,8 +395,8 @@ canvas {
         justify-content: space-between;
         padding: 10px;
         gap: 15px;
-        flex-wrap: nowrap; /* Prevent wrapping */
-        white-space: nowrap; /* Prevent text wrapping */
+        flex-wrap: nowrap;
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
@@ -336,12 +409,12 @@ canvas {
         font-family: Arial, Helvetica, sans-serif;
       }
     
-      #nord-km, #sued-km, #gotthard-pass-status {
+    #nord-km, #sued-km, #gotthard-pass-status {
         font-weight: normal;
         font-size: 14px;
       }
     
-      .traffic-info, .pass-info, .weather-info {
+    .traffic-info, .pass-info, .weather-info {
         flex: 0 1 30%; /* Adjust based on the number of blocks */
         margin: 0 auto; /* Center each block */
         justify-content: center;
@@ -360,12 +433,25 @@ canvas {
       }
 
     .data-icon:hover {
-    background-color: rgb(239, 238, 240, 1);
-    font-size: 23px;
+        background-color: rgb(239, 238, 240, 1);
+        font-size: 23px;
     }
 
     .navbar-content {
         gap: 20px;
+    }
+
+    /* Custom Legend */
+    .custom-legend {
+        width: 70%;
+        max-width: 600px;
+        margin: 10px auto 20px auto; 
+        padding: 10px;
+    }
+
+    .legend-labels {
+        font-size: 10px;
+        width: 103%;
     }
 }
 

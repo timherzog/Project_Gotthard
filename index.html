@@ -55,8 +55,9 @@
                 <span class="close">&times;</span>
             </div>
             <div class="modal-body">
-              <h3 class="chart-title">Durchschnitt Staukilometer pro Stunde</h3>
-              <div class="chart-buttons">
+              <!-- Liniengrafik -->
+              <h3 class="chart-title-line">Durchschnitt Staukilometer pro Stunde</h3>
+              <div class="chart-buttons line-chart-buttons">
                   <button id="btn24h" class="active">Letzte 24h</button>
                   <button id="btn2days">Letzte 2 Tage</button>
                   <button id="btn1week">Letzte Woche</button>
@@ -70,8 +71,40 @@
               <div id="chart1week" class="chart-container" style="display: none;">
                   <canvas id="trafficChart1week"></canvas>
               </div>
-            <h3 class="chart-title">Heatmap für Staudaten des Nordportals</h3>
-            <div id="heatmap"></div>
+
+              <!-- Heatmap -->
+              <h3 class="chart-title-heatmap">Heatmap für Staudaten der letzten 7 Tage</h3>
+              <div class="chart-buttons heatmap-buttons">
+                <button class="heatmap-active">Nordportal</button>
+                <button>Südportal</button>
+              </div>
+              <div id="heatmapNord"></div>
+              <div id="heatmapSued" style="display: none;"></div>
+
+              <div id="custom-legend" class="custom-legend">
+                <div class="legend-bar">
+                  <div class="color-block"></div>
+                  <div class="color-block"></div>
+                  <div class="color-block"></div>
+                  <div class="color-block"></div>
+                  <div class="color-block"></div>
+                  <div class="color-block"></div>
+                  <div class="color-block"></div>
+                  <div class="color-block"></div>
+                  <div class="color-block"></div>
+                </div>
+                <div class="legend-labels">
+                  <span>0km</span>
+                  <span>0.1km</span>
+                  <span>1km</span>
+                  <span>2km</span>
+                  <span>4km</span>
+                  <span>6km</span>
+                  <span>8km</span>
+                  <span>12km</span>
+                  <span>15+km</span>
+                </div>
+              </div>
         </div>
         </div>
       </div>

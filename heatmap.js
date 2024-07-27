@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", function() {
-    // Tooltip erstellen
-    var tooltip = d3.select("body").append("div")
+    // Tooltip-Element erstellen und Stil festlegen
+    const tooltip = d3.select("body").append("div")
         .attr("class", "tooltip")
         .style("position", "fixed")
         .style("text-align", "left")
@@ -12,200 +12,145 @@ document.addEventListener("DOMContentLoaded", function() {
         .style("opacity", 0)
         .style("fill", "red");
 
-    // Funktion zur Erstellung der Heatmap
+    // Funktion zum Erstellen der Heatmap
     function createHeatmap() {
         fetch('extract_heatmap_data.php')
             .then(response => response.json())
             .then(data => {
-                // Margins und Dimensionen definieren
-                var margin = {top: 30, right: 30, bottom: 100, left: 30},
-                    width = 600 - margin.left - margin.right,
-                    height = 500 - margin.top - margin.bottom;
-                
-                // SVG-Element für die Heatmap erstellen
-                var svg = d3.select("#heatmap")
-                    .html("") // Vorherigen Inhalt löschen
-                    .append("svg")
-                    .attr("width", "100%")
-                    .attr("height", "100%")
-                    .attr("viewBox", "0 0 600 500") // Viewport definieren zum skalieren
-                    .append("g")
-                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-                var days = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
-                var hours = d3.range(24);
-
-                // Farbskala definieren mit Stufen
-                var colorScale = d3.scaleThreshold()
-                    .domain([0.1, 0.9, 1.9, 3.9, 5.9, 7.9, 9.9, 11.9, 14.9]) // Define the thresholds for the color scale
-                    .range([
-                        "#f7f7f7", // Color for 0
-                        "#fee5d9", // Color for <=0.5
-                        "#fcbba1", // Color for <=1
-                        "#fc9272", // Color for <=4
-                        "#fb6a4a", // Color for <=6
-                        "#ef3b2c", // Color for <=8
-                        "#cb181d", // Color for <=10
-                        "#99000d", // Color for <=15
-                        "#67000d"  // Color for >15 (höchster Wert)
-                    ]);
-
-                // Daten für die Heatmap vorbereiten
-                var nestedData = d3.rollup(data, 
-                    v => d3.mean(v, d => d.avg_stau_nord),
-                    d => d.day,
-                    d => d.hour
-                );
-
-                var heatmapData = [];
-                nestedData.forEach((hours, day) => {
-                    hours.forEach((value, hour) => {
-                        heatmapData.push({day: +day, hour: +hour, value: value});
-                    });
-                });
-
-                // Rechtecke für die Heatmap hinzufügen
-                svg.selectAll("rect")
-                    .data(heatmapData, function(d) { return d.day + ':' + d.hour; })
-                    .enter()
-                    .append("rect")
-                    .attr("x", function(d) { return d.hour * width / 24; })
-                    .attr("y", function(d) { return d.day * height / 7; })
-                    .attr("width", width / 24)
-                    .attr("height", height / 7)
-                    .style("fill", function(d) { return colorScale(d.value); })
-                    .on("mouseover", function(event, d) {
-                        var tooltipWidth = 150; // Geschätzte Breite des Tooltips
-                        var tooltipOffset = 10; // Abstand des Tooltips zum Cursor
-                        var screenWidth = window.innerWidth;
-                        var screenHeight = window.innerHeight;
-                        var mouseX = event.pageX;
-                        var mouseY = event.pageY;
-                        
-                        // Position des Tooltips berechnen
-                        var tooltipX, tooltipY;
-                    
-                        // Bestimmen, ob das Tooltip rechts oder links vom Cursor erscheinen soll
-                        if (mouseX + tooltipWidth + tooltipOffset > screenWidth) {
-                            // Tooltip soll links erscheinen
-                            tooltipX = mouseX - tooltipWidth - tooltipOffset;
-                        } else {
-                            // Tooltip soll rechts erscheinen
-                            tooltipX = mouseX + tooltipOffset;
-                        }
-                    
-                        // // Y-Position des Tooltips berechnen
-                        if (mouseY - 40 < 0) {
-                            // Wenn das Tooltip oben aus dem Sichtbereich ragt, positioniere ihn weiter nach unten
-                            tooltipY = mouseY + 20;
-                        } else {
-                            tooltipY = mouseY - 40;
-                        }
-                    
-                        tooltip.transition().duration(200).style("opacity", .9);
-                        tooltip.html("Tag: " + days[d.day] + "<br>Uhrzeit: " + d.hour + ":00<br>Stau (Ø): " + d.value.toFixed(1) + "km")
-                            .style("left", tooltipX + "px")
-                            .style("top", tooltipY + "px");
-                    })
-                    
-                    
-                    .on("mouseout", function() {
-                        tooltip.transition().duration(200).style("opacity", 0);
-                    })
-                    .on("touchstart", hideTooltip)
-                    .on("touchmove", hideTooltip)
-                    .on("touchend", hideTooltip);
-
-                // Funktion zur Aktualisierung der X-Achsen-Beschriftungen basierend auf der Fensterbreite
-                function updateXLabels() {
-                    var xLabels = svg.selectAll(".x-label").remove(); // Alte Beschriftungen entfernen
-
-                    var xLabelInterval = window.innerWidth <= 732 ? 2 : 1; // Bestimme die Intervalle
-
-                    svg.append("g")
-                        .attr("transform", "translate(0," + height + ")")
-                        .selectAll("text")
-                        .data(d3.range(0, 24))
-                        .enter()
-                        .append("text")
-                        .text(d => d % xLabelInterval === 0 ? d.toString().padStart(2, '0') + ":00" : "")
-                        .attr("x", (d, i) => i * (width / 24))
-                        .attr("y", 20)
-                        .style("text-anchor", "middle")
-                        .style("font-size", "12px")
-                        .style("font-family", "Arial, sans-serif")
-                        .style("fill", "rgb(102, 102, 102)")
-                        .attr("transform", (d, i) => {
-                            const xPos = i * (width / 24);
-                            const yPos = 20;
-                            return `rotate(-45, ${xPos}, ${yPos})`;
-                        })
-                        .attr("class", "x-label"); // Füge Klasse hinzu
-                }
-
-                // Initiales Update der X-Achsen-Beschriftungen
-                updateXLabels();
-
-                // Event-Listener für Fenstergröße
-                window.addEventListener('resize', updateXLabels);
-
-                // Y-Achsen-Beschriftungen hinzufügen
-                var yLabels = svg.append("g")
-                    .selectAll("text")
-                    .data(days)
-                    .enter()
-                    .append("text")
-                    .text(d => d)
-                    .attr("x", -10)
-                    .attr("y", (d, i) => i * height / 7 + height / 14)
-                    .attr("dy", "0.35em")
-                    .style("text-anchor", "end")
-                    .style("font-size", "12px")
-                    .style("font-family", "Arial, sans-serif")
-                    .style("fill", "rgb(102, 102, 102)");
-
-                // Legende hinzufügen
-                var legendWidth = 300, legendHeight = 20;
-                var legend = svg.append("g")
-                    .attr("class", "legend")
-                    .attr("transform", "translate(0," + (height + margin.bottom / 2) + ")");
-
-                legend.selectAll("rect")
-                    .data(colorScale.range())
-                    .enter()
-                    .append("rect")
-                    .attr("x", function(d, i) { return i * (legendWidth / colorScale.range().length); })
-                    .attr("y", 0)
-                    .attr("width", legendWidth / colorScale.range().length)
-                    .attr("height", legendHeight)
-                    .style("fill", d => d);
-
-                // Legenden-Achse
-                // legend.append("g")
-                //     .attr("class", "legend-axis")
-                //     .attr("transform", "translate(0," + legendHeight + ")")
-                //     .call(d3.axisBottom(d3.scaleLinear().domain([0, 15]).range([0, legendWidth])));
-
-                // Funktion zum Verbergen des Tooltips bei Scrollen
-                function hideTooltip() {
-                    tooltip.transition().duration(500).style("opacity", 0);
-                }
-
-                document.addEventListener('scroll', hideTooltip);
+                createHeatmapForPortal('Nord', data.nord, '#heatmapNord');
+                createHeatmapForPortal('Süd', data.sued, '#heatmapSued');
             });
     }
 
-    // Funktion zur Planung des nächsten Updates
+    // Funktion zum Erstellen der Heatmap für ein bestimmtes Portal
+    function createHeatmapForPortal(portal, data, selector) {
+        const margin = {top: 0, right: 15, bottom: 30, left: 75};
+        const width = 600 - margin.left - margin.right;
+        const height = 500 - margin.top - margin.bottom;
+        
+        // SVG-Element erstellen
+        const svg = d3.select(selector)
+            .html("") 
+            .append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("viewBox", "0 0 600 500")
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        const days = ["Gestern", "Vorgestern", "Vor 3 Tagen", "Vor 4 Tagen", "Vor 5 Tagen", "Vor 6 Tagen", "Vor 7 Tagen"];
+        const hours = d3.range(24);
+
+        // Farbbereich für die Heatmap definieren
+        const colorScale = d3.scaleThreshold()
+            .domain([0.1, 0.9, 1.9, 3.9, 5.9, 7.9, 9.9, 11.9, 14.9])
+            .range([
+                "#f7f7f7", "#fee5d9", "#fcbba1", "#fc9272", "#fb6a4a", 
+                "#ef3b2c", "#cb181d", "#99000d", "#67000d"
+            ]);
+        
+        // Rechtecke für die Heatmap erstellen und Tooltip-Ereignisse hinzufügen
+        svg.selectAll("rect")
+            .data(data)
+            .enter()
+            .append("rect")
+            .attr("x", d => d.hour * width / 24)
+            .attr("y", d => d.day * height / 7)
+            .attr("width", width / 24)
+            .attr("height", height / 7)
+            .style("fill", d => colorScale(d.value))
+            .on("mouseover", function(event, d) {
+                // Tooltip-Position und Inhalt festlegen
+                const tooltipWidth = 150;
+                const tooltipOffset = 10;
+                const screenWidth = window.innerWidth;
+                const screenHeight = window.innerHeight;
+                const mouseX = event.pageX;
+                const mouseY = event.pageY;
+                
+                let tooltipX = mouseX + tooltipOffset > screenWidth ? mouseX - tooltipWidth - tooltipOffset : mouseX + tooltipOffset;
+                let tooltipY = mouseY - 40 < 0 ? mouseY + 20 : mouseY - 40;
+            
+                tooltip.transition().duration(200).style("opacity", .9);
+                tooltip.html(`Tag: ${days[d.day]}<br>Uhrzeit: ${d.hour}:00<br>Stau (Ø): ${d.value.toFixed(1)}km`)
+                    .style("left", tooltipX + "px")
+                    .style("top", tooltipY + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.transition().duration(200).style("opacity", 0);
+            });
+        // Funktion zum Aktualisieren der X-Achsenbeschriftungen
+        function updateXLabels() {
+            svg.selectAll(".x-label").remove();
+
+            const xLabelInterval = window.innerWidth <= 732 ? 2 : 1;
+
+            svg.append("g")
+                .selectAll("text")
+                .data(hours.filter((h, i) => i % xLabelInterval === 0))
+                .enter()
+                .append("text")
+                .text(d => (d < 10 ? "0" : "") + d + ":00")
+                .attr("x", d => d * width / 24 + width / 48)
+                .attr("y", height + 20)
+                .attr("text-anchor", "middle")
+                .style("font-size", "12px")
+                .style("font-family", "Arial, sans-serif")
+                .style("fill", "rgb(102, 102, 102)")
+                .attr("transform", (d, i) => {
+                    const xPos = d * (width / 24) + width / 48;
+                    const yPos = height + 20;
+                    return `rotate(-45, ${xPos}, ${yPos})`;
+                })
+                .attr("class", "x-label");
+        }
+
+        updateXLabels();
+        window.addEventListener('resize', updateXLabels);
+
+        // Y-Achsenbeschriftungen hinzufügen
+        svg.append("g")
+            .selectAll("text")
+            .data(days)
+            .enter()
+            .append("text")
+            .text(d => d)
+            .attr("x", -10)
+            .attr("y", (d, i) => i * height / 7 + height / 14)
+            .attr("dy", "0.35em")
+            .style("text-anchor", "end")
+            .style("font-size", "12px")
+            .style("font-family", "Arial, sans-serif")
+            .style("fill", "rgb(102, 102, 102)");
+
+        // Legende hinzufügen (auskommentierter da in html/css erstellt)
+        // const legendWidth = 300;
+        // const legendHeight = 20;
+        // const legend = svg.append("g")
+        //     .attr("class", "legend")
+        //     .attr("transform", "translate(0," + (height + margin.bottom / 2) + ")");
+
+        // legend.selectAll("rect")
+        //     .data(colorScale.range())
+        //     .enter()
+        //     .append("rect")
+        //     .attr("x", (d, i) => i * (legendWidth / colorScale.range().length))
+        //     .attr("y", 0)
+        //     .attr("width", legendWidth / colorScale.range().length)
+        //     .attr("height", legendHeight)
+        //     .style("fill", d => d);
+
+        // legend.append("g")
+        //     .attr("class", "legend-axis")
+        //     .attr("transform", "translate(0," + legendHeight + ")")
+        //     .call(d3.axisBottom(d3.scaleLinear().domain([0, 15]).range([0, legendWidth])));
+    }
+
+    // Funktion zum Planen der Heatmap-Aktualisierung
     function scheduleUpdate() {
-        var now = new Date();
-        var nextUpdate = new Date();
-
-        nextUpdate.setDate(now.getDate() + 1);
-        nextUpdate.setHours(0);
-        nextUpdate.setMinutes(5);
-        nextUpdate.setSeconds(0);
-
-        var timeout = nextUpdate - now;
+        const now = new Date();
+        const nextUpdate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 5, 0, 0);
+        const timeout = nextUpdate - now;
 
         setTimeout(function() {
             createHeatmap();
@@ -213,18 +158,46 @@ document.addEventListener("DOMContentLoaded", function() {
         }, timeout);
     }
 
-    // Event-Listener für Klick auf das Daten-Icon
+    // Ereignislistener für das Öffnen des Datenmodals
     document.getElementById('dataIcon').addEventListener('click', function() {
         document.getElementById('dataModal').style.display = 'block';
-        //createChart();  // Ensure createChart is defined
         createHeatmap();
     });
 
-    // Event-Listener zum Schließen des Modals
+    // Ereignislistener für das Schließen des Datenmodals
     document.getElementsByClassName('close')[0].addEventListener('click', function() {
         document.getElementById('dataModal').style.display = 'none';
     });
 
-    // Update-Planung starten
+    // Schaltflächen zum Umschalten zwischen Heatmaps
+    const heatmapButtons = document.querySelectorAll('.heatmap-buttons button');
+    
+    // Initialer Zustand der Heatmap-Schaltflächen
+    function setInitialHeatmapButtonState() {
+        heatmapButtons[0].classList.add('heatmap-active');
+        document.getElementById('heatmapNord').style.display = 'block';
+        document.getElementById('heatmapSued').style.display = 'none';
+    }
+
+    // Ereignislistener für das Umschalten der Heatmaps
+    heatmapButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            heatmapButtons.forEach(btn => btn.classList.remove('heatmap-active'));
+            this.classList.add('heatmap-active');
+            
+            const portal = this.textContent.trim();
+            document.getElementById('heatmapNord').style.display = portal === 'Nordportal' ? 'block' : 'none';
+            document.getElementById('heatmapSued').style.display = portal === 'Südportal' ? 'block' : 'none';
+        });
+    });
+
+    // Aktualisierung planen und initialen Zustand festlegen
+    document.getElementById('dataIcon').addEventListener('click', function() {
+        document.getElementById('dataModal').style.display = 'block';
+        createHeatmap();
+        setInitialHeatmapButtonState(); // Setze den initialen Zustand beim Öffnen des Modals
+    });
+
+    // Heatmap-Aktualisierung planen
     scheduleUpdate();
 });
